@@ -1,0 +1,5 @@
+# Things for Git to ignore when I commit diptwit!
+*.log
+data/*
+node_modules/*
+old/*

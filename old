@@ -1,0 +1,47 @@
+
+  gildo = bridgeeed[message.id];
+  console.log("Baleeted!");
+  console.log(disClient.guilds);
+  console.log(bridged[message.id]);
+  console.log(bridgeeed);
+  console.log(gildo);
+  console.log(disClient.guilds.find('id', gildo));
+  console.log(disClient.guilds[gildo]);
+  homu = disClient.guilds.find('id', gildo).channels.find('id', bridgeed[message.id]);
+  console.log(homu);
+
+
+
+
+
+   for(var d = 0; d < Object.keys(allDiscos).length; d++){
+    if ((allDiscos[d].guilds.find(x => x.id === disFile['bridges'][mcid]['to_svid'])) != null) {
+     console.log('emitting assassin to ' + disFile['bridges'][mcid]['to_svname']);
+     allDiscos[d].emit('bridgedMessage', bridgeBuffer);
+     } // closes event emitter for when it finds the right disco
+    } // closes iterator for d
+   } // close check for bridge existence, activation and non-webhook post
+  }) // end of handler for messageDelete ohh yeah
+ disClient.on('bridgedMessage', bridgeBuffer => {
+  //console.log("Bridgin");
+  //console.log(disClient.guilds);
+  serv = disClient.guilds.find(x => x.id === bridgeBuffer['dest_sv']);
+  dest = serv.channels.find(x => x.id === bridgeBuffer['dest_ch']);
+  if (!dest) {cbotlog("ERROR: Bridge " + bridgeBuffer['dest_ch'] + " (on " + bridgeBuffer['dest_sv'] + ") is bad!");}
+   else {
+    console.log('received bridge event for ' + bridged[bridgeBuffer['message']]);
+    console.log(bridgeBuffer);
+    if(bridgeBuffer['msgmode'] == 'k') {
+     console.log("Del'd id " + bridgeBuffer['message'] + " [killing " + bridged[bridgeBuffer['message']] + "]")
+     dest.fetchWebhooks()
+      .then(dest => {
+       console.log('baleeting');
+       setTimeout(baleet, 5000, message);
+       function baleet(message) {
+        if (bridged[bridgeBuffer['message']]) {
+         console.log('target id: ' + bridged[bridgeBuffer['message']]);
+         dest.fetchMessage(bridged[bridgeBuffer['message']]).delete();
+         console.log("baleeting " + message.content);
+         } // closes "if entry in bridged msgs log exists for this msg"
+        } // closes baleet function
+       }); // closes then

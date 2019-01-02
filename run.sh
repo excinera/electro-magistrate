@@ -1,4 +1,4 @@
 #!/bin/bash
-cd /home/jpg/srsbiz/electromagistrate/
+cd /home/x/electromagistrate/
 touch asdf.log
-node index.js -s
+node index.js -s -e -l -m

@@ -1,5 +1,7 @@
-# Things for Git to ignore when I commit diptwit!
+# Things for Git to ignore when I commit ele Electro-Magistrate!
 *.log
 data/*
 node_modules/*
 old/*
+lock
+old

@@ -11,11 +11,15 @@
 // and clean up the indents so it can be put on github
 // x. 2k18 12 11
 
+// added some more features and made it actually handle errors instead of just throwing exceptions
+// x. 2k19 01 02
+
 const datFolder = __dirname + '/data/';
 const logFolder = datFolder + 'logs/';
 const deetsFolder = datFolder + 'servers/'
 const dataFolder = datFolder + 'config/';
 
+const reactconfig = datFolder + 'react-config.json';
 const globalconfig = datFolder + 'global-config.json';
 const bridgeconfig = datFolder + 'bridge-config.json';
 const badlistpath = datFolder + 'badlist.json';
@@ -162,6 +166,8 @@ var flick = now.utc();
 var flickrun = [1, 55, 55];
 var flickname = ["Battletoads"];
 var timeoutz = [];
+var interCount = 0;
+var lastInter = 0;
 
 // Initialize deets folder and read a list of files from it
 // An array that will be used to store all of this stuff so that it doesn't get garbage collected, I guess.
@@ -200,17 +206,6 @@ bridgeBuffer = {
  'attache':{},
  }; // closes bridgeBuffer default JSON
 
-// Database stuff for the bridge's message record.
-
-/*let bridgedb = new sqlite3.Database(__dirname + "/data/db.db", (err) => {
- if (err) {
-  console.error(err.message);
- }
- console.log('CONNECTED TO DATABASE');
-});
-
-let sql =  */
-
 
 // this is where the magic happens. outer control loop iterated over all configs
 for (var i = 0; i < deezDeets.length; i++){
@@ -220,7 +215,7 @@ for (var i = 0; i < deezDeets.length; i++){
  const disFile = JSON.parse(fs.readFileSync(deetsFolder + deezDeets[i]));   
  const authDeets  = disFile['token'];
  var disBridges = {"null":"null"};
- disClient.login(authDeets).catch(err => {console.log('Authentication failure on ' + deezDeets); throw err});
+ disClient.login(authDeets).catch(err => {console.log('Authentication failure on ' + disFile['appellation']); throw err});
  // If the global and local bridge flags are set...
  if (configz['bridges'] === "on" && disFile['bridges'] === "on" && bridgefigz) {
   const bridgefigz = JSON.parse(fs.readFileSync(bridgeconfig)); 
@@ -242,6 +237,8 @@ for (var i = 0; i < deezDeets.length; i++){
   // Cram the client object into allDiscos so that it can exist outside of this scope
  allDiscos.push(disClient);
  allDeets.push(disFile);
+
+
  // this is the startup routine that iterates over every client when it connects
  disClient.on('ready', () => {
   disServer = disClient.guilds.get(disFile['server_id']);
@@ -257,18 +254,106 @@ for (var i = 0; i < deezDeets.length; i++){
    cbotlog("Error: Cannot fetch server for " + disFile['server_id'] + " (" + disFile['appellation'] + ")");
    }
   cbotlog("Connected to \"" + disFile['appellation'] + "\": " + disFile['server_name'] + " (" + disFile['server_id'] + ") as " + disFile['username'] + " (" + disFile['client_id'] + ")");
-  loadServerConfig(disFile['server_id']);   
   const secrets = JSON.parse(fs.readFileSync(dataFolder + disFile['server_id'] + "/secrets.json"));
   const sterces = reverseSecrets(secrets);
   console.log("Server configuration loaded for " + disFile['appellation']);
+  try {
+   disFile['introed'] = JSON.parse(fs.readFileSync(dataFolder + disFile['server_id'] + "/introduced.json"));
+   console.log("Introduced users list loaded.");
+   }
+   catch (e) {
+    console.log("No introed configuration found. Creating empty file.");
+    disFile['introed'] = ["0","0"];
+    fs.writeFileSync(dataFolder + disFile['server_id'] + "/introduced.json", JSON.stringify(disFile['introed'], null, ' '));
+    } 
+  try {
+   disFile['reaccs'] = JSON.parse(fs.readFileSync(dataFolder + disFile['server_id'] + "/reaccs.json"));
+   console.log("React config loaded.");
+   }
+   catch (e) {
+    console.log(e);
+    console.log("No reaction configuration found. Creating empty file.");
+    disFile['reaccs'] = {"a":"a"};
+    fs.writeFileSync(dataFolder + disFile['server_id'] + "/reaccs.json", JSON.stringify(disFile['reaccs'], null, ' '));
+    }
+  try {
+   disFile['roles'] = JSON.parse(fs.readFileSync(dataFolder + disFile['server_id'] + "/roles.json"));
+   console.log("Role config loaded.");
+   }
+   catch (e) {
+    console.log(e);
+    console.log("No reaction configuration found. Creating empty file.");
+    disFile['roles'] = {"a":"a"};
+    fs.writeFileSync(dataFolder + disFile['server_id'] + "/roles.json", JSON.stringify(disFile['roles'], null, ' '));
+    }
+  for(var ds in Object.keys(disFile['reaccs'])) {
+   re = disFile['reaccs'];
+   ki = Object.keys(re)[ds];
+   if (ki === "a") return;
+   if (re[ki]['kill'] === "yes") return;
+   disClient.guilds.get(re[ki]['chat']).channels.get(re[ki]['chan']).fetchMessage(ki)
+    .then (message => {
+     console.log(message.reactions.keys());
+     for(var dd in message.reactions.keys()) {
+      console.log(message.reactions[dd]);
+      }
+     //console.log(message.reactions.find(x => x.Emoji.id === re[ki][')
+     })
+    .catch(console.error);
+   // disClient.guilds.get(disFile.reaccs[ds].
+   }
   }); // this closes out the startup routine
-
 
   // see: https://github.com/AnIdiotsGuide/discordjs-bot-guide/blob/master/coding-guides/raw-events.md
   // that's what this is adapted from
+  //others: GUILD_MEMBER_UPDATE
  disClient.on('raw', packet => {
+  // console.log(packet)
+  if(packet.t === 'GUILD_MEMBER_UPDATE') {
+   console.log(packet);
+   if (disFile['server_id'] === packet.d.guild_id && disFile['rolecatcher'] === "on") {
+    console.log(packet.d.user.id);
+    disFile['roles'][packet.d.user.id] = packet.d.roles;
+    try {
+     fs.writeFileSync(dataFolder + disFile['server_id'] + "/roles.json", JSON.stringify(disFile['roles'], null, ' '));
+     console.log("Roles saved.");
+     } catch (e) {console.log("Error: no roles json found.")}
+    } // if rolecatcher's on and it's on the monitored server
+   } // if it's a guild member update 
+  
+  if(packet.t === 'GUILD_MEMBER_ADD') {
+  console.log(packet);
+  console.log(packet.d.user.id);
+  if (disFile['roles'][packet.d.user.id]) {
+   var newRoles = disFile['roles'][packet.d.user.id];
+   console.log(newRoles);
+   // console.log(disClient.guilds.get(packet.d.guild_id).name);
+   setTimeout(function() {
+    for (var inc in newRoles) {
+     console.log(newRoles[inc]);
+     disClient.guilds.get(packet.d.guild_id).members.get(packet.d.user.id).addRole(newRoles[inc])
+     }
+    }, 3000);
+   } // if there's a roles entry for the user id
+  } // if it's a guild member add
+
+  //console.log(packet);
   // this will re-emit events for emoji add/remove and deletions on non-cached messages
   // basically it accounts for discord.js being stupid and not doing this
+  if (configz.sec) {
+   if(packet.t === 'VOICE_STATE_UPDATE' && packet.d.channel_id === configz.sec.orig) {
+    disClient.guilds.get(packet.d.guild_id).members.get(packet.d.user_id).addRole(configz.sec.role)
+    disClient.guilds.get(packet.d.guild_id).members.get(packet.d.user_id).setVoiceChannel(configz.sec.dest)
+    console.log("illuminated");
+    }
+   if(packet.t === 'VOICE_STATE_UPDATE' && packet.d.channel_id === null) {
+    setTimeout(function() {
+     // console.log(disClient.guilds.get(packet.d.guild_id).members.get(packet.d.user_id));
+     disClient.guilds.get(packet.d.guild_id).members.get(packet.d.user_id).removeRole(configz.sec.role);
+     console.log("rming illuminatus");
+     }, 1500);
+    }
+   }
   if(packet.t == 'PRESENCE_UPDATE') return;
   if (!['MESSAGE_REACTION_ADD', 'MESSAGE_REACTION_REMOVE', 'MESSAGE_DELETE', 'MESSAGE_UPDATE', 'TYPING_START'].includes(packet.t)) return;
   // if it's anything that we don't care about, gtfo this loop
@@ -309,25 +394,27 @@ for (var i = 0; i < deezDeets.length; i++){
     }
    return;
    }
-  d && console.log(packet);
+  // d && console.log(packet);
   var channel = disClient.channels.get(packet.d.channel_id);
   if (['MESSAGE_REACTION_ADD', 'MESSAGE_REACTION_REMOVE'].includes(packet.t)) {
    // if (channel.messages.has(packet.d.message_id)) return;
    // don't emit an event if the message is already cached
-   channel.fetchMessage(packet.d.message_id).then(message => {
-    const emoji = packet.d.emoji.id ? `${packet.d.emoji.name}:${packet.d.emoji.id}` : packet.d.emoji.name;
-    // Emojis can have identifiers of name:id format, so we have to account for that case as well
-    const reaction = message.reactions.get(emoji);
-    // This gives us the reaction we need to emit the event properly, in top of the message object
-    if (packet.d.user_id === disClient.user.id) return;
-    // it shouldn't be processing stuff for its own reaccs
-    if (packet.t === 'MESSAGE_REACTION_ADD') {
-     disClient.emit('bessageReactionAdd', reaction, disClient.users.get(packet.d.user_id));
-     }
-    if (packet.t === 'MESSAGE_REACTION_REMOVE') {
-     disClient.emit('bessageReactionRemove', reaction, disClient.users.get(packet.d.user_id));
-     } // if it's an emoji raw
-    }); // closes what to do with the message once fetched
+   channel.fetchMessage(packet.d.message_id)
+    .then(message => {
+     const emoji = packet.d.emoji.id ? `${packet.d.emoji.name}:${packet.d.emoji.id}` : packet.d.emoji.name;
+     // Emojis can have identifiers of name:id format, so we have to account for that case as well
+     const reaction = message.reactions.get(emoji);
+     // This gives us the reaction we need to emit the event properly, in top of the message object
+     if (packet.d.user_id === disClient.user.id) return;
+     // it shouldn't be processing stuff for its own reaccs
+     if (packet.t === 'MESSAGE_REACTION_ADD') {
+      disClient.emit('bessageReactionAdd', reaction, disClient.users.get(packet.d.user_id));
+      }
+     if (packet.t === 'MESSAGE_REACTION_REMOVE') {
+      disClient.emit('bessageReactionRemove', reaction, disClient.users.get(packet.d.user_id));
+      } // if it's an emoji raw
+     })
+     .catch(console.log("Error on fetching message")); // closes what to do with the message once fetched
    return;
    } // closes "if it's a react or a remove react"
   if (['MESSAGE_DELETE'].includes(packet.t)) {
@@ -367,10 +454,36 @@ for (var i = 0; i < deezDeets.length; i++){
   }); // closes out handler for raw event
 
  disClient.on('bessageReactionAdd', messageReaction => {
-  console.log(messageReaction);
-  console.log('asdf');
-  console.log(messageReaction._emoji.name + " from " + messageReaction._users);
+  // console.log(messageReaction);
+  // console.log('asdf');
+  // console.log(messageReaction._emoji.name + " from " + messageReaction._users);
   var mcid = messageReaction.message.channel.id;
+  var mid = messageReaction.message.id;
+  if (disFile['reaccs'][mid]) {
+   if (disFile['reaccs'][mid]['kill'] === "yes") {
+    console.log(messageReaction);
+    } // closes if kill=yes
+   if (disFile['reaccs'][mid]['kill'] === "no") {
+    messageReaction.fetchUsers(100)
+    .then(users => {
+     console.log(users.keys());
+     
+     }); // then users
+    } // closes if kill=no
+   } // closes if mid
+  
+
+
+
+
+
+
+
+
+
+
+
+
   if (disFile['bridges'][mcid] && disFile['bridges'][mcid]['active'] === "yes"){
    d && cbotlog("Bridged from " + disFile['bridges'][mcid]['from_name'] + " / to: " + disFile['bridges'][mcid]['to_name']);
    var bridgeBuffer = {
@@ -384,16 +497,17 @@ for (var i = 0; i < deezDeets.length; i++){
    for(var f = 0; f < Object.keys(allDiscos).length; f++){
     if ((allDiscos[f].guilds.find(x => x.id === disFile['bridges'][mcid]['to_svid'])) != null) {
      d && console.log('Emitting bridgedMessage for copy of ' + disFile['bridges'][mcid]['to_svname']);
-     allDiscos[f].emit('bridgedMessage', bridgeBuffer);
+     allDiscos[f].emit('bridgedMessage', bridgeBuffer)
+      .catch( console.log("Error: could not emit bridged message"));
      } // closes event emitter for when it finds the right disco
     } // closes iterator for f
    } // close check for bridge existence, activation and non-webhook post
   }); // messageReactionAdd handler 
 
  disClient.on('bessageReactionRemove', messageReaction => {
-  d && console.log(messageReaction.count);
-  d && console.log('asdf');
-  d && console.log(messageReaction._emoji.name + " from " + messageReaction._users);
+  // d && console.log(messageReaction.count);
+  // d && console.log('asdf');
+  // d && console.log(messageReaction._emoji.name + " from " + messageReaction._users);
   var mcid = messageReaction.message.channel.id;
   if (disFile['bridges'][mcid] && disFile['bridges'][mcid]['active'] === "yes"){
    d && cbotlog("Bridged from " + disFile['bridges'][mcid]['from_name'] + " / to: " + disFile['bridges'][mcid]['to_name']);
@@ -650,7 +764,7 @@ for (var i = 0; i < deezDeets.length; i++){
     else{
      disFile['arm'] = disFile['arm'] - 1;
       if(message.content.search(/^bad\+/) != -1) {
-     if((message.content.substring(5,23) != message.content.substring(5,22)) && (message.content.substring(5,23) == message.content.substring(5,24))) {
+     if((message.content.substring(5,22) != message.content.substring(5,21)) && (message.content.substring(5,23) == message.content.substring(5,24))) {
       badlist.push(message.content.substring(5,23));
       } // Add user ID to badlist.
      else {
@@ -658,7 +772,7 @@ for (var i = 0; i < deezDeets.length; i++){
       } // If user ID is invalid.
      } // closes if "bad+"
       if(message.content.search(/^bad\-/) != -1) {
-     if((message.content.substring(5,23) != message.content.substring(5,22)) &&(message.content.substring(5,23) == message.content.substring(5,24))) {
+     if((message.content.substring(5,22) != message.content.substring(5,21)) &&(message.content.substring(5,23) == message.content.substring(5,24))) {
       if(badlist.indexOf(message.content.substring(5,23)) != -1) {
       badlist.splice(badlist.indexOf(message.content.substring(5,23)), 1);
       }
@@ -812,6 +926,99 @@ for (var i = 0; i < deezDeets.length; i++){
     antechamber.send(secrets[message.author.id] + ' : ' + message.content);
     d && console.log(secrets);
     } // closes "if the damn anonline is even turned on"
+
+   if (message.content.search(/^listguilds/) != -1 && (isBigBoss == 1)) {
+    message.reply("im gay");
+    // console.log(disClient.guilds);
+    for(var f = 0; f < Object.keys(allDiscos).length; f++){
+     console.log(allDiscos[f].user.username);
+     message.reply("**" + twoPad(allDiscos[f].guilds.size) + "** on ``" + allDiscos[f].user.id + "`` **\"" + allDiscos[f].user.username + "\"**");
+     //message.reply(allDiscos[f].guilds.keys());
+     console.log(allDiscos[f].guilds.keys());
+     console.log(allDiscos[f].guilds.size);
+     var iterator1 = allDiscos[f].guilds.keys();
+     for (var i = 0; i < allDiscos[f].guilds.size; i++) {
+      //console.log(i);
+      //console.log(allDiscos[f].guilds.keys(i));
+      serverId = iterator1.next().value;
+      message.reply("--> ``" + twoPad(i + 1) + "``: ``" + allDiscos[f].guilds.get(serverId).id + "`` *\"" + allDiscos[f].guilds.get(serverId).name + "\"*");
+      } // closes for loop
+     } // closes iterator over all discos
+    } // Closes on if it detects a list guilds command.
+
+   if (message.content.search(/^template/) != -1 && (isBigBoss == 1)) {
+    message.reply("template");
+    }
+
+   if (message.content.search(/^ld reacts/) != -1 && (isBigBoss == 1)) {
+    try {
+     disFile['introed'] = JSON.parse(fs.readFileSync(dataFolder + disFile['server_id'] + "/introduced.json"));
+     console.log("Introduced users list loaded.");
+     message.reply("Introduced users list loaded.");
+     } catch (e) {message.reply("Error: no intro'd json found.")} 
+    try {
+     disFile['reaccs'] = JSON.parse(fs.readFileSync(dataFolder + disFile['server_id'] + "/reaccs.json"));
+     console.log("React config loaded.");
+     message.reply("React config loaded.");
+     } catch (e) {message.reply("Error: no reaccs json found.")} 
+    }
+
+   if (message.content.search(/^sv reacts/) != -1 && (isBigBoss == 1)) {
+    try {
+     fs.writeFileSync(dataFolder + disFile['server_id'] + "/introduced.json", JSON.stringify(disFile['introed'], null, ' '));
+     console.log("Introduced users list saved.");
+     message.reply("Introduced users list saved.");
+     } catch (e) {message.reply("Error: no intro'd json found.")} 
+    try {
+     fs.writeFileSync(dataFolder + disFile['server_id'] + "/reaccs.json", JSON.stringify(disFile['reaccs'], null, ' '));
+     console.log("Reaccs saved.");
+     message.reply("Reaccs saved.");
+     } catch (e) {message.reply("Error: no reaccs json found.")} 
+    }
+
+   if (message.content.search(/^rd /) != -1 && (isBigBoss == 1)) {
+    var mscguild = message.content.substring(3, 21);
+    var mscchannel = message.content.substring(22, 40);
+    var mscmessage = message.content.substring(41, 59);
+    message.reply("[ " + disClient.guilds.get(mscguild).name + " / " + disClient.guilds.get(mscguild).channels.get(mscchannel).name + " ] " + mscmessage);
+    disClient.guilds.get(mscguild).channels.get(mscchannel).fetchMessage(mscmessage)
+     .then(msg => {
+      message.reply(msg.content);
+
+      console.log(msg.reactions);
+      for (var asdf in msg.reactions) {
+       console.log(msg.reactions[asdf]);
+       console.log(asdf);
+       console.log(msg.reactions[asdf]._emoji);
+       }
+      })
+     .catch(message.reply("Error"));
+
+    }
+
+   if (message.content.search(/^listroles/) != -1 && (isBigBoss == 1)) {
+    var channelString = message.content.substring(10, 28);
+    // console.log(disClient.guilds);
+    for(var f = 0; f < Object.keys(allDiscos).length; f++){
+     var iterator1 = allDiscos[f].guilds.keys();
+     for (var i = 0; i < allDiscos[f].guilds.size; i++) {
+      //console.log(i);
+      //console.log(allDiscos[f].guilds.keys(i));
+      serverId = iterator1.next().value;
+      if (allDiscos[f].guilds.get(channelString)) {
+       message.reply("``" + twoPad(allDiscos[f].guilds.get(serverId).roles.size) + "`` for ``" + allDiscos[f].user.id + "`` **\"" + allDiscos[f].user.username + "\"** on ``" + allDiscos[f].guilds.get(serverId).id + "`` **\"" + allDiscos[f].guilds.get(serverId).name + "\"**");
+       var iterator2 = allDiscos[f].guilds.get(serverId).roles.keys();
+       for (var fq = 0; fq < allDiscos[f].guilds.get(serverId).roles.size; fq++){
+        roleId = iterator2.next().value;
+        console.log(allDiscos[f].guilds.get(serverId).roles.get(roleId));
+        message.reply("``" + twoPad(fq + 1) + "``: ``" + allDiscos[f].guilds.get(serverId).roles.get(roleId).id + "`` \"" + allDiscos[f].guilds.get(serverId).roles.get(roleId).name + "\"");
+        } // closes loop for iterating over roles. god help our souls
+       return;
+       } // closes "if there's a server named it!"
+      } // closes for loop
+     } // closes iterator over all discos
+    } // Closes on if it detects a list guilds command.
+
    } // closes "if !server and not itself"
 
   if (server == 0 && message.content.search(/^time/) != -1) {
@@ -838,13 +1045,48 @@ for (var i = 0; i < deezDeets.length; i++){
     setTimeout(function() {message.reply("it would be extremely painful.")}, 3000);
     } // closes lol
    if (message.content === "You're a big bot.") {
+    console.log(message.channel.permissionOverwrites);
     setTimeout(function() {message.channel.send("For you.")}, 3000);
+    } // closes lol
+   if (message.content === "We're about to start having fun.") {
+    setTimeout(function() {message.channel.send("**This isn't even my final form!**")}, 3000);
     } // closes lol
    if (message.content.search(/meow/) != -1) {
     message.react('🐈');
     // this is the unicode for a cat, it's not blank.
     // it's one character, despite taking up many spaces
     }
+
+
+   if (message.content.search(/Debate me./) != -1 && configz['debate'] === "on") {
+    if (lastInter === message.author.id) {return;}
+    interCount++;
+    lastInter = message.author.id;
+    if (interCount === 1) {
+     console.log(configz['debateguild']);
+     debGuild = disClient.guilds.get(configz['debateguild']);
+     debGuild.createChannel('lycaeum', 'text')
+     .then( channel => {
+      message.reply("!portal #lycaeum");
+      channel.setParent('362797734345834498');
+      console.log(channel.permissionOverwrites);
+      console.log(message.member.roles.get('345045447745732608'))
+      channel.overwritePermissions('345045447745732608', {
+       VIEW_CHANNEL: false,
+       READ_MESSAGES: false,
+       MENTION_EVERYONE: false
+       }); // overwrites perms.
+      channel.overwritePermissions('345045447745732608', {
+       VIEW_CHANNEL: true,
+       SEND_MESSAGES: false,
+       MENTION_EVERYONE: false
+       }); // overwrites perms
+      }); // closes out "after the channel's created"
+     } // if interCoutn is high enough.
+    } // closes "Debate me."
+
+
+
   
    // Note: I don't know why or how disFile is being associated with the server that the message is on.
    // It seems pretty robust. I'm pretty sure that messing around with it is a bad idea.

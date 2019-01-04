@@ -1,4 +1,4 @@
-# Things for Git to ignore when I commit ele Electro-Magistrate!
+# Things for Git to ignore when I commit el Electro-Magistrate!
 *.log
 data/*
 node_modules/*

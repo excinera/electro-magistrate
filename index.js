@@ -29,7 +29,7 @@ const versionid = "Electro-Magistrate v1.0";
 const starttime = new Date().getTime();
 const cloaklength = 18;
 const film = "on";
-const filmPostInterval = 2;
+const filmPostInterval = 10;
 var filmOngoing = "0";
 
 const fs = require('fs');
@@ -453,7 +453,7 @@ for (var i = 0; i < deezDeets.length; i++){
    } // if it's a delete raw
   }); // closes out handler for raw event
 
- disClient.on('bessageReactionAdd', messageReaction => {
+ disClient.on('bessageReactionAdd', (messageReaction, user) => {
   // console.log(messageReaction);
   // console.log('asdf');
   // console.log(messageReaction._emoji.name + " from " + messageReaction._users);
@@ -461,28 +461,23 @@ for (var i = 0; i < deezDeets.length; i++){
   var mid = messageReaction.message.id;
   if (disFile['reaccs'][mid]) {
    if (disFile['reaccs'][mid]['kill'] === "yes") {
-    console.log(messageReaction);
+    messageReaction.message.clearReactions();
     } // closes if kill=yes
    if (disFile['reaccs'][mid]['kill'] === "no") {
-    messageReaction.fetchUsers(100)
-    .then(users => {
-     console.log(users.keys());
-     
-     }); // then users
+    if (!disFile['reaccs'][mid][messageReaction._emoji.name]) {
+     messageReaction.remove(user)
+     return;
+     }
+    entry = disFile['reaccs'][mid][messageReaction._emoji.name];
+    messageReaction.message.channel.guild.members.get(user.id).addRole(entry['role']);
+    if (entry['keep'] === "no") {
+     setTimeout(function() {
+      messageReaction.remove(user)
+      }, 10000);
+     } // If "keep" is set to "no", remove the reaction.
+    // console.log(messageReaction);
     } // closes if kill=no
    } // closes if mid
-  
-
-
-
-
-
-
-
-
-
-
-
 
   if (disFile['bridges'][mcid] && disFile['bridges'][mcid]['active'] === "yes"){
    d && cbotlog("Bridged from " + disFile['bridges'][mcid]['from_name'] + " / to: " + disFile['bridges'][mcid]['to_name']);
@@ -504,11 +499,21 @@ for (var i = 0; i < deezDeets.length; i++){
    } // close check for bridge existence, activation and non-webhook post
   }); // messageReactionAdd handler 
 
- disClient.on('bessageReactionRemove', messageReaction => {
+ disClient.on('bessageReactionRemove', (messageReaction, user) => {
   // d && console.log(messageReaction.count);
   // d && console.log('asdf');
   // d && console.log(messageReaction._emoji.name + " from " + messageReaction._users);
   var mcid = messageReaction.message.channel.id;
+  var mid = messageReaction.message.id;
+
+  if (disFile['reaccs'][mid]) {
+   if (!disFile['reaccs'][mid]['kill']) return;
+   if (disFile['reaccs'][mid]['kill'] === "no") {
+    entry = disFile['reaccs'][mid][messageReaction._emoji.name];
+    messageReaction.message.channel.guild.members.get(user.id).removeRole(entry['role']);
+    // console.log(messageReaction);
+    } // closes if kill=no
+   } // closes if mid
   if (disFile['bridges'][mcid] && disFile['bridges'][mcid]['active'] === "yes"){
    d && cbotlog("Bridged from " + disFile['bridges'][mcid]['from_name'] + " / to: " + disFile['bridges'][mcid]['to_name']);
    var bridgeBuffer = {
@@ -546,7 +551,7 @@ for (var i = 0; i < deezDeets.length; i++){
     };
    for(var f = 0; f < Object.keys(allDiscos).length; f++){
     if ((allDiscos[f].guilds.find(x => x.id === disFile['bridges'][mcid]['to_svid'])) != null) {
-     d && console.log('Emitting bridgedMessage for copy of ' + disFile['bridges'][mcid]['to_svname']);
+     d && console.log('Emitting bridge-kill for copy of ' + disFile['bridges'][mcid]['to_svname']);
      allDiscos[f].emit('bridgedMessage', bridgeBuffer);
      } // closes event emitter for when it finds the right disco
     } // closes iterator for d
@@ -689,10 +694,11 @@ for (var i = 0; i < deezDeets.length; i++){
   var server = 0;
   if (message.guild) server = message.guild;    
   var isBigBoss = 0;
-  if (message.author.id === configz['bigboss']['id']) {
-   isBigBoss = 1;   
-   // console.log("hi boss");
-   } // Sets the sentry variable to 1 if it's being sent by the botlord.
+  var isFilmBoss = 0;
+  if (message.author.id === configz['bigboss']['id']) isBigBoss = 1;   
+  if (disFile['film']) {
+   if (disFile['filmchannel']['bosses'].indexOf(message.author.id) != -1) isFilmBoss = 1;
+   }
   if (server == 0 && message.author.id != disClient.user.id  && isBigBoss == 1) {
    console.log("test");
    // d ? dFuncs(message, isBigBoss) : doNothing();
@@ -785,7 +791,11 @@ for (var i = 0; i < deezDeets.length; i++){
      } // Closes on if it's armed.
     } // Closes on if it detects a badlist command.
 
-   if (message.content.search(/^film cancel/) != -1 && (isBigBoss == 1) && film == "on") {
+
+
+
+
+   if (message.content.search(/^film cancel/) != -1 && (isFilmBoss == 1) && film == "on") {
     for(var i = 0; i < Object.keys(timeoutz).length ; i++) {
      // console.log(timeoutz[i]);
      clearTimeout(timeoutz[i]);
@@ -794,11 +804,11 @@ for (var i = 0; i < deezDeets.length; i++){
     timeoutz = [];
     }
 
-   if (message.content.search(/^film set/) != -1 && (isBigBoss == 1) && film == "on") {
+   if (message.content.search(/^film set/) != -1 && (isFilmBoss == 1) && film == "on") {
     dateString = message.content.substring(9,34);
     flick = now.utc(dateString);
     // message.reply(dateString + " (" + flickname + ")");
-    message.reply(now.utc(dateString).fromNow());
+    disClient.guilds.get(disFile['server_id']).channels.get(disFile['filmchannel']['id']).send(now.utc(dateString).fromNow());
     intervals = [1800, 1200, 600, 300, 180, 120, 60, 30, 20, 10, 5, 4, 3, 2, 1, 0];
     intervalmsg = {
      "1800":"**Thirty minutes until showtime!**",
@@ -828,13 +838,13 @@ for (var i = 0; i < deezDeets.length; i++){
        console.log(timerinc + " way before");
        console.log("the thing is now + " + intervals[timerinc] + " with timeout " + intToStart);
        if(intervalmsg[intervals[timerinc]] && intervals[timerinc] != 0) {
-        message.reply(intervalmsg[intervals[timerinc]]);
+        disClient.guilds.get(disFile['server_id']).channels.get(disFile['filmchannel']['id']).send(intervalmsg[intervals[timerinc]]);
         } // if interval message found
        else {
-        message.reply(intervals[timerinc] + " SECONDS UNTIL START!");
+        disClient.guilds.get(disFile['server_id']).channels.get(disFile['filmchannel']['id']).send(intervals[timerinc] + " SECONDS UNTIL START!");
         } // if specific message for interval not found
        if(intervals[timerinc] == 0) {
-        message.reply("**Now playing: " + flickname + "** (00:00:00 / " + twoPad(flickrun[1]) + ":" + twoPad(flickrun[2]) + ":" + twoPad(flickrun[3]) + ")");
+        disClient.guilds.get(disFile['server_id']).channels.get(disFile['filmchannel']['id']).send("**Now playing: " + flickname + "** (00:00:00 / " + twoPad(flickrun[1]) + ":" + twoPad(flickrun[2]) + ":" + twoPad(flickrun[3]) + ")");
         } // if it's showtime
        console.log(timerinc + " before");
        timerinc++;
@@ -855,12 +865,12 @@ for (var i = 0; i < deezDeets.length; i++){
     message.reply("Starting movie at: " + now.utc(flick).format() + " (" + now.utc(flick).format("dddd, MMMM Do YYYY, HH:mm:ss") + " UTC)");   
     var totalMins = (60 * flickrun[1]) + flickrun[2];
     timerincr = 1;
-    for(var i = 1; i < totalMins; i += filmPostInterval) {
+    for(var i = 1; i < totalMins; i += disFile['filmchannel']['postinterval']) {
      console.log("Setting timeout for " + i + " minutes");
      timeoutz.push(setTimeout(function() {
-      message.reply("**Now playing: " + flickname + "** (" + twoPad(Math.floor(timerincr / 60)) + ":" + twoPad(timerincr) + " / " + twoPad(flickrun[1]) + ":" + twoPad(flickrun[2]) + ":" + twoPad(flickrun[3]) + ")");
+      disClient.guilds.get(disFile['server_id']).channels.get(disFile['filmchannel']['id']).send("**Now playing: " + flickname + "** (" + twoPad(Math.floor(timerincr / 60)) + ":" + twoPad(timerincr) + " / " + twoPad(flickrun[1]) + ":" + twoPad(flickrun[2]) + ":" + twoPad(flickrun[3]) + ")");
       if (timerincr == 1) timerincr = 0; // same as with "i" down below!
-      timerincr += filmPostInterval;
+      timerincr += disFile['filmchannel']['postinterval'];
       }, intToStart + 1000*60*i)); // closes timeout
      if (i == 1) i = 0; // it'll do this on minute 1 but apart from that it should be even with the increment.
      } // Set timeouts for during-film time checks.
@@ -946,6 +956,60 @@ for (var i = 0; i < deezDeets.length; i++){
      } // closes iterator over all discos
     } // Closes on if it detects a list guilds command.
 
+   if (message.content.search(/^listroles/) != -1 && (isBigBoss == 1)) {
+    var channelString = message.content.substring(10, 28);
+    // console.log(disClient.guilds);
+    for(var f = 0; f < Object.keys(allDiscos).length; f++){
+     var iterator1 = allDiscos[f].guilds.keys();
+     for (var i = 0; i < allDiscos[f].guilds.size; i++) {
+      //console.log(i);
+      //console.log(allDiscos[f].guilds.keys(i));
+      serverId = iterator1.next().value;
+      if (allDiscos[f].guilds.get(channelString)) {
+       message.reply("``" + twoPad(allDiscos[f].guilds.get(serverId).roles.size) + "`` for ``" + allDiscos[f].user.id + "`` **\"" + allDiscos[f].user.username + "\"** on ``" + allDiscos[f].guilds.get(serverId).id + "`` **\"" + allDiscos[f].guilds.get(serverId).name + "\"**");
+       var iterator2 = allDiscos[f].guilds.get(serverId).roles.keys();
+       for (var fq = 0; fq < allDiscos[f].guilds.get(serverId).roles.size; fq++){
+        roleId = iterator2.next().value;
+        console.log(allDiscos[f].guilds.get(serverId).roles.get(roleId));
+        message.reply("``" + twoPad(fq + 1) + "``: ``" + allDiscos[f].guilds.get(serverId).roles.get(roleId).id + "`` \"" + allDiscos[f].guilds.get(serverId).roles.get(roleId).name + "\"");
+        } // closes loop for iterating over roles. god help our souls
+       return;
+       } // closes "if there's a server named it!"
+      } // closes for loop
+     } // closes iterator over all discos
+    } // Closes on if it detects a list guilds command.
+
+   if (message.content.search(/^scraperoles /) != -1 && (isBigBoss == 1)) {
+    if (disFile['rolecatcher'] != "on") {
+     message.reply("ERROR: rolecatcher disabled");
+     return;
+     }
+    var servid = message.content.substring(12, 30);
+    var iterMemb = disClient.guilds.get(servid).members.keys();
+    for (var fq = 0; fq < disClient.guilds.get(servid).members.size; fq++){
+     memberId = iterMemb.next().value;
+     ith = disClient.guilds.get(servid).members.get(memberId);
+     console.log("-------");
+     console.log(memberId);
+     var iterRole = ith.roles.keys();
+     var rolesToApply = [];
+     for (var fr = 0; fr < ith.roles.size; fr++){
+      roleId = iterRole.next().value;
+      rolesToApply.push(roleId);
+      console.log(memberId);
+      console.log(roleId);
+      } // closes iteration over role objects
+      disFile['roles'][memberId] = rolesToApply;
+     } // closes loop for iterating over roles. god help our souls
+    try {
+     fs.writeFileSync(dataFolder + disFile['server_id'] + "/roles.json", JSON.stringify(disFile['roles'], null, ' '));
+     console.log("Roles saved.");
+     message.reply("Role file updated");
+     } catch (e) {console.log("Error: no roles json found.")}
+    } // if scraperoles
+
+
+
    if (message.content.search(/^template/) != -1 && (isBigBoss == 1)) {
     message.reply("template");
     }
@@ -976,6 +1040,7 @@ for (var i = 0; i < deezDeets.length; i++){
      } catch (e) {message.reply("Error: no reaccs json found.")} 
     }
 
+
    if (message.content.search(/^rd /) != -1 && (isBigBoss == 1)) {
     var mscguild = message.content.substring(3, 21);
     var mscchannel = message.content.substring(22, 40);
@@ -984,7 +1049,6 @@ for (var i = 0; i < deezDeets.length; i++){
     disClient.guilds.get(mscguild).channels.get(mscchannel).fetchMessage(mscmessage)
      .then(msg => {
       message.reply(msg.content);
-
       console.log(msg.reactions);
       for (var asdf in msg.reactions) {
        console.log(msg.reactions[asdf]);
@@ -996,28 +1060,6 @@ for (var i = 0; i < deezDeets.length; i++){
 
     }
 
-   if (message.content.search(/^listroles/) != -1 && (isBigBoss == 1)) {
-    var channelString = message.content.substring(10, 28);
-    // console.log(disClient.guilds);
-    for(var f = 0; f < Object.keys(allDiscos).length; f++){
-     var iterator1 = allDiscos[f].guilds.keys();
-     for (var i = 0; i < allDiscos[f].guilds.size; i++) {
-      //console.log(i);
-      //console.log(allDiscos[f].guilds.keys(i));
-      serverId = iterator1.next().value;
-      if (allDiscos[f].guilds.get(channelString)) {
-       message.reply("``" + twoPad(allDiscos[f].guilds.get(serverId).roles.size) + "`` for ``" + allDiscos[f].user.id + "`` **\"" + allDiscos[f].user.username + "\"** on ``" + allDiscos[f].guilds.get(serverId).id + "`` **\"" + allDiscos[f].guilds.get(serverId).name + "\"**");
-       var iterator2 = allDiscos[f].guilds.get(serverId).roles.keys();
-       for (var fq = 0; fq < allDiscos[f].guilds.get(serverId).roles.size; fq++){
-        roleId = iterator2.next().value;
-        console.log(allDiscos[f].guilds.get(serverId).roles.get(roleId));
-        message.reply("``" + twoPad(fq + 1) + "``: ``" + allDiscos[f].guilds.get(serverId).roles.get(roleId).id + "`` \"" + allDiscos[f].guilds.get(serverId).roles.get(roleId).name + "\"");
-        } // closes loop for iterating over roles. god help our souls
-       return;
-       } // closes "if there's a server named it!"
-      } // closes for loop
-     } // closes iterator over all discos
-    } // Closes on if it detects a list guilds command.
 
    } // closes "if !server and not itself"
 
@@ -1027,6 +1069,7 @@ for (var i = 0; i < deezDeets.length; i++){
     return;
     }
    for(var i = 0; i < 5; i++) {
+     message.reply(now.utc(intToStart).format("HH:mm:ss"));
     setTimeout(function() {
      intToStart = now.utc().diff(flick);
      message.reply(now.utc(intToStart).format("HH:mm:ss"));
@@ -1036,7 +1079,7 @@ for (var i = 0; i < deezDeets.length; i++){
   // if it's a server message, i.e. in a channel somewhere
   if (server != 0 && message.author.id != disClient.user.id) {
    if (message.mentions.users.get(disClient.user.id)) {
-    setTimeout(function() {message.channel.send("No one cared who I was till I compiled the source code.")}, 3000);
+    setTimeout(function() {message.channel.send("No one cared who I was till I loaded node_modules.")}, 3000);
     }
    if (message.content === "In fact, one of them is in this very room!") {
     message.reply("You're god damn right I am, boss!")
@@ -1055,6 +1098,12 @@ for (var i = 0; i < deezDeets.length; i++){
     message.react('🐈');
     // this is the unicode for a cat, it's not blank.
     // it's one character, despite taking up many spaces
+    }
+   if (message.content.search(/freeze peach/) != -1) {
+    message.react('❄');
+    // this is the unicode for a snowflake, it's not blank.
+    setTimeout(function() {message.react('🍑')}, 500);
+    // unicode: peach. it's one character, despite taking up many spaces
     }
 
 

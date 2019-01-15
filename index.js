@@ -649,7 +649,9 @@ for (var i = 0; i < deezDeets.length; i++){
         var nameToSend = bridgeBuffer['user_un'];
         if (serv.members.find(x => x.id === bridgeBuffer['user_id']) != null) {
          nameToSend = serv.members.find(x => x.id === bridgeBuffer['user_id']).displayName;
-         } // 
+         }
+        if (nameToSend.length === 1) nameToSend = nameToSend + ".";
+        // 
         //https://cdn.discordapp.com/avatars/134073775925886976/970d33bddeb40f9b7a20f7524a6b07f5.png?size=2048
         //avatar_url: bridgeBuffer['user_av'],
         //rightHook.edit("blanku", bridgeBuffer['user_av'])
@@ -699,7 +701,7 @@ for (var i = 0; i < deezDeets.length; i++){
   if (disFile['film']) {
    if (disFile['filmchannel']['bosses'].indexOf(message.author.id) != -1) isFilmBoss = 1;
    }
-  if (server == 0 && message.author.id != disClient.user.id  && isBigBoss == 1) {
+  if (server == 0 && message.author.id != disClient.user.id  && (isFilmBoss + isBigBoss) >= 1) {
    console.log("test");
    // d ? dFuncs(message, isBigBoss) : doNothing();
    if (disFile['arm'] && (isBigBoss == 1)) {}
@@ -904,7 +906,7 @@ for (var i = 0; i < deezDeets.length; i++){
     message.reply("Film set: " + flickname + " (" + twoPad(flickrun[1]) + ":" + twoPad(flickrun[2]) + ":" + twoPad(flickrun[3]) + ")");
     } // Closes on if it detects a film command.
 
-   if (message.content.search(/^!utc/) != -1 && (isBigBoss == 1) && film === "on") {
+   if (message.content.search(/^utc/) != -1 && (isBigBoss == 1) && film === "on") {
     message.reply("film set " + now.utc(flick).format());
     } // Closes on if it detects a fromnow command.
 
@@ -978,6 +980,12 @@ for (var i = 0; i < deezDeets.length; i++){
       } // closes for loop
      } // closes iterator over all discos
     } // Closes on if it detects a list guilds command.
+   
+   if (message.content.search(/^echo /) != -1 && (isBigBoss == 1)) {
+    var chanid = message.content.substring(5, 23);
+    var sendpart = message.content.substring(24, 2024);
+    disClient.channels.get(chanid).send(sendpart);
+    }
 
    if (message.content.search(/^scraperoles /) != -1 && (isBigBoss == 1)) {
     if (disFile['rolecatcher'] != "on") {
@@ -1040,7 +1048,6 @@ for (var i = 0; i < deezDeets.length; i++){
      } catch (e) {message.reply("Error: no reaccs json found.")} 
     }
 
-
    if (message.content.search(/^rd /) != -1 && (isBigBoss == 1)) {
     var mscguild = message.content.substring(3, 21);
     var mscchannel = message.content.substring(22, 40);
@@ -1058,7 +1065,17 @@ for (var i = 0; i < deezDeets.length; i++){
       })
      .catch(message.reply("Error"));
 
-    }
+    } // if rd
+
+   if (message.content.search(/^help/) != -1) {
+    if (isBigBoss === 1) {
+     message.reply("**ADMIN COMMANDS**\n```arm [ ++ | -- | 0 | x ]: increase arm count for dangerous commands\ndie: exit process (requires arm)\nbad[ + | - ] [user ID]: + adds/removes user to badlist (if flags set) and prints badlist.\nbrankav: loads b64.png and sets as avatar (broken)\nlistguilds\nlistroles [guild ID]\nscraperoles [guild ID]: scrapes all guild user roles to roles.json (must have rolecatcher flag enabled in config.json)\n[ ld | sv] reacts: loads/saves reaccs.json and introduced.json.```");
+     }
+    if (isFilmBoss === 1) {
+     message.reply("**FILM COMMANDS**\n```utc: Produces UTC timestamp for right now, in ISO 6801 format. Remember to modify this string before setting the film!\nfilm mins: Set film runtime, in minutes. Format it like: 123:45\nfilm hrs: Set film runtime, in hours. Format it like: 02:03:45\nfilm title: Set film title. Limit is 999 characters.\nfilm set: Queue the film for watching. This WILL send messages in the channel, so don't mess it up. Format it like: film set 2045-01-29T21:08:59Z\nfilm cancel: So you messed it up, huh? This will cancel all outstanding countdowns and announcements.```");
+     }
+   } // closes "if help command"
+
 
 
    } // closes "if !server and not itself"
@@ -1076,8 +1093,17 @@ for (var i = 0; i < deezDeets.length; i++){
      }, 5000 * i);
     }
    } // Closes reply to timechecks. Woo!
+
   // if it's a server message, i.e. in a channel somewhere
   if (server != 0 && message.author.id != disClient.user.id) {
+
+   if (disFile['intro']) {
+    if (disFile['intro'] != "on") return;
+    if (message.channel.id === disFile['intro-channel']) {
+     if(disFile['introed'].indexOf(message.author.id) === -1) disFile['introed'].push(message.author.id);
+     } // if it's in the intro channel, check to see if there's an entry for that userid int he file. if not, push it in!
+    } // if there's a disFile[intro],
+   
    if (message.mentions.users.get(disClient.user.id)) {
     setTimeout(function() {message.channel.send("No one cared who I was till I loaded node_modules.")}, 3000);
     }

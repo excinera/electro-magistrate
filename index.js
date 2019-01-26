@@ -31,6 +31,7 @@ const cloaklength = 18;
 const film = "on";
 const filmPostInterval = 10;
 var filmOngoing = "0";
+var loveFletcher = 0;
 
 const fs = require('fs');
 const os = require('os');
@@ -40,6 +41,7 @@ const https = require('https');
 const disco = require('discord.js');
 const now = require('moment');
 const EventEmitter = require('events');
+
 // class buffEmitter extends EventEmitter {}
 // const buffemitter = new buffEmitter();
 // const sqlite3 = require('sqlite3').verbose();
@@ -149,7 +151,7 @@ now.relativeTimeThreshold('h', 48);
 now.relativeTimeThreshold('d', 300);
 // Change thresholds for Moment to give more accurate times
 
-console.log(versionid + ' || INITIALIZING');
+console.log(date() + " || " + versionid + ' || INITIALIZING');
 console.log("lock: " + lock + ", pid: " + process.pid);
 fs.writeFileSync(lockfilepath, JSON.stringify(process.pid));
 
@@ -207,6 +209,19 @@ bridgeBuffer = {
  }; // closes bridgeBuffer default JSON
 
 
+setInterval(function() {
+  console.log(date());}, 30000);
+
+var hts = "off";
+
+if (configz['hottakes'] === 'on') {
+ hts = "on";
+ try { professions = JSON.parse(fs.readFileSync(datFolder + "goofy/professions.json"))} catch (e) {hts = "off";};
+ try { oppressed = JSON.parse(fs.readFileSync(datFolder + "goofy/oppressed.json"))} catch (e) {hts = "off";};
+ try { oppression = JSON.parse(fs.readFileSync(datFolder + "goofy/oppression.json"))} catch (e) {hts = "off";};
+ }
+
+
 // this is where the magic happens. outer control loop iterated over all configs
 for (var i = 0; i < deezDeets.length; i++){
  // Initialize Discord connection
@@ -215,7 +230,12 @@ for (var i = 0; i < deezDeets.length; i++){
  const disFile = JSON.parse(fs.readFileSync(deetsFolder + deezDeets[i]));   
  const authDeets  = disFile['token'];
  var disBridges = {"null":"null"};
- disClient.login(authDeets).catch(err => {console.log('Authentication failure on ' + disFile['appellation']); throw err});
+ try { disClient.login(authDeets)
+  .catch(console.error);
+  }
+  catch (e) {
+   cbotlog('Authentication failure on ' + disFile['appellation']);
+   }
  // If the global and local bridge flags are set...
  if (configz['bridges'] === "on" && disFile['bridges'] === "on" && bridgefigz) {
   const bridgefigz = JSON.parse(fs.readFileSync(bridgeconfig)); 
@@ -238,6 +258,9 @@ for (var i = 0; i < deezDeets.length; i++){
  allDiscos.push(disClient);
  allDeets.push(disFile);
 
+disClient.on('error', (errorEvent) => {
+  cbotlog(errorEvent.message)
+})
 
  // this is the startup routine that iterates over every client when it connects
  disClient.on('ready', () => {
@@ -246,7 +269,7 @@ for (var i = 0; i < deezDeets.length; i++){
   // multiple config files can use the same authentication tokens.
   // config files may only contain deets for one server, so each disFile only uses one server
   disFile['client_id'] = disClient.user.id;
-  disFile['username'] = disClient.user.username;
+  disFile['client_name'] = disClient.user.username;
   if (disServer) {
    disFile['server_name'] = disServer.name;
    }
@@ -254,8 +277,11 @@ for (var i = 0; i < deezDeets.length; i++){
    cbotlog("Error: Cannot fetch server for " + disFile['server_id'] + " (" + disFile['appellation'] + ")");
    }
   cbotlog("Connected to \"" + disFile['appellation'] + "\": " + disFile['server_name'] + " (" + disFile['server_id'] + ") as " + disFile['username'] + " (" + disFile['client_id'] + ")");
-  const secrets = JSON.parse(fs.readFileSync(dataFolder + disFile['server_id'] + "/secrets.json"));
-  const sterces = reverseSecrets(secrets);
+  
+  try { fs.mkdirSync(dataFolder + disFile['server_id']) } catch(e) {}
+
+  // const secrets = JSON.parse(fs.readFileSync(dataFolder + disFile['server_id'] + "/secrets.json"));
+  // const sterces = reverseSecrets(secrets);
   console.log("Server configuration loaded for " + disFile['appellation']);
   try {
    disFile['introed'] = JSON.parse(fs.readFileSync(dataFolder + disFile['server_id'] + "/introduced.json"));
@@ -293,9 +319,9 @@ for (var i = 0; i < deezDeets.length; i++){
    if (re[ki]['kill'] === "yes") return;
    disClient.guilds.get(re[ki]['chat']).channels.get(re[ki]['chan']).fetchMessage(ki)
     .then (message => {
-     console.log(message.reactions.keys());
+     // console.log(message.reactions.keys());
      for(var dd in message.reactions.keys()) {
-      console.log(message.reactions[dd]);
+      // console.log(message.reactions[dd]);
       }
      //console.log(message.reactions.find(x => x.Emoji.id === re[ki][')
      })
@@ -308,29 +334,37 @@ for (var i = 0; i < deezDeets.length; i++){
   // that's what this is adapted from
   //others: GUILD_MEMBER_UPDATE
  disClient.on('raw', packet => {
-  // console.log(packet)
+  d && console.log(date());
+  d && console.log(packet);
+  if(packet.t == 'PRESENCE_UPDATE') return;
   if(packet.t === 'GUILD_MEMBER_UPDATE') {
-   console.log(packet);
+   // console.log(packet);
    if (disFile['server_id'] === packet.d.guild_id && disFile['rolecatcher'] === "on") {
-    console.log(packet.d.user.id);
+    // console.log(packet.d.user.id);
     disFile['roles'][packet.d.user.id] = packet.d.roles;
     try {
      fs.writeFileSync(dataFolder + disFile['server_id'] + "/roles.json", JSON.stringify(disFile['roles'], null, ' '));
-     console.log("Roles saved.");
+     // console.log("Roles saved.");
      } catch (e) {console.log("Error: no roles json found.")}
     } // if rolecatcher's on and it's on the monitored server
    } // if it's a guild member update 
+
+
+  if(packet.t === 'GUILD_MEMBER_REMOVE' && disFile['memberlog'] === "on") {
+   memberlog("REM: " + packet.d.guild_id + " / " + packet.d.user.id + " (" + packet.d.user.username + "#" + packet.d.user.discriminator + ")");
+   }
   
   if(packet.t === 'GUILD_MEMBER_ADD') {
-  console.log(packet);
-  console.log(packet.d.user.id);
+   if (disFile['memberlog'] === "on") { memberlog("ADD: " + packet.d.guild_id + " / " + packet.d.user.id + " (" + packet.d.user.username + "#" + packet.d.user.discriminator + ")");}
+ console.log(packet);
+ // console.log(packet.d.user.id);
   if (disFile['roles'][packet.d.user.id]) {
    var newRoles = disFile['roles'][packet.d.user.id];
-   console.log(newRoles);
+   //console.log(newRoles);
    // console.log(disClient.guilds.get(packet.d.guild_id).name);
    setTimeout(function() {
     for (var inc in newRoles) {
-     console.log(newRoles[inc]);
+     //console.log(newRoles[inc]);
      disClient.guilds.get(packet.d.guild_id).members.get(packet.d.user.id).addRole(newRoles[inc])
      }
     }, 3000);
@@ -344,17 +378,16 @@ for (var i = 0; i < deezDeets.length; i++){
    if(packet.t === 'VOICE_STATE_UPDATE' && packet.d.channel_id === configz.sec.orig) {
     disClient.guilds.get(packet.d.guild_id).members.get(packet.d.user_id).addRole(configz.sec.role)
     disClient.guilds.get(packet.d.guild_id).members.get(packet.d.user_id).setVoiceChannel(configz.sec.dest)
-    console.log("illuminated");
+    //console.log("illuminated");
     }
    if(packet.t === 'VOICE_STATE_UPDATE' && packet.d.channel_id === null) {
     setTimeout(function() {
      // console.log(disClient.guilds.get(packet.d.guild_id).members.get(packet.d.user_id));
      disClient.guilds.get(packet.d.guild_id).members.get(packet.d.user_id).removeRole(configz.sec.role);
-     console.log("rming illuminatus");
+     //console.log("rming illuminatus");
      }, 1500);
     }
    }
-  if(packet.t == 'PRESENCE_UPDATE') return;
   if (!['MESSAGE_REACTION_ADD', 'MESSAGE_REACTION_REMOVE', 'MESSAGE_DELETE', 'MESSAGE_UPDATE', 'TYPING_START'].includes(packet.t)) return;
   // if it's anything that we don't care about, gtfo this loop
   if(packet.t == 'TYPING_START') {
@@ -402,19 +435,24 @@ for (var i = 0; i < deezDeets.length; i++){
    channel.fetchMessage(packet.d.message_id)
     .then(message => {
      const emoji = packet.d.emoji.id ? `${packet.d.emoji.name}:${packet.d.emoji.id}` : packet.d.emoji.name;
+     console.log(emoji);
      // Emojis can have identifiers of name:id format, so we have to account for that case as well
      const reaction = message.reactions.get(emoji);
+     //console.log(reaction);
      // This gives us the reaction we need to emit the event properly, in top of the message object
      if (packet.d.user_id === disClient.user.id) return;
      // it shouldn't be processing stuff for its own reaccs
      if (packet.t === 'MESSAGE_REACTION_ADD') {
+      d && console.log(packet);
       disClient.emit('bessageReactionAdd', reaction, disClient.users.get(packet.d.user_id));
       }
      if (packet.t === 'MESSAGE_REACTION_REMOVE') {
+      d && console.log(packet);
+      if (!reaction) return;
       disClient.emit('bessageReactionRemove', reaction, disClient.users.get(packet.d.user_id));
       } // if it's an emoji raw
      })
-     .catch(console.log("Error on fetching message")); // closes what to do with the message once fetched
+     .catch(console.log("oop")); // closes what to do with the message once fetched
    return;
    } // closes "if it's a react or a remove react"
   if (['MESSAGE_DELETE'].includes(packet.t)) {
@@ -459,6 +497,17 @@ for (var i = 0; i < deezDeets.length; i++){
   // console.log(messageReaction._emoji.name + " from " + messageReaction._users);
   var mcid = messageReaction.message.channel.id;
   var mid = messageReaction.message.id;
+  if (messageReaction._emoji.name ===  "🕜") {
+    var pontent = messageReaction.message.content.substr(messageReaction.message.content.indexOf(">") + 3, 3000);
+    //console.log(pontent.length);
+    //if (pontent.length % 2 === 0) {return;}
+    //console.log(messageReaction.message.author.id);
+    if (messageReaction.message.author.id === "429368441577930753" && user.id === "429368441577930753") {
+     messageReaction.message.delete();
+     }
+    if (messageReaction.message.author.id != disClient.user.id) {return;}
+    user.send(messageReaction.message.channel.guild.members.get(user.id).displayName + ": " + rot13(pontent));
+    } // if it's rrrrr
   if (disFile['reaccs'][mid]) {
    if (disFile['reaccs'][mid]['kill'] === "yes") {
     messageReaction.message.clearReactions();
@@ -473,7 +522,7 @@ for (var i = 0; i < deezDeets.length; i++){
     if (entry['keep'] === "no") {
      setTimeout(function() {
       messageReaction.remove(user)
-      }, 10000);
+      }, 60000);
      } // If "keep" is set to "no", remove the reaction.
     // console.log(messageReaction);
     } // closes if kill=no
@@ -640,7 +689,7 @@ for (var i = 0; i < deezDeets.length; i++){
         // hooks.find('id', bridgeBuffer['hook_id']).edit(bridgeBuffer['user_dn'], bridgeBuffer['user_av'])
         var sentImages = 0;
         sendEmbed = [];
-        bridgeBuffer.attache.forEach(item => {
+        bridgeBuffer['attache'].forEach(item => {
          // dest.send("<" + bridgeBuffer['usrname'] + "> " + item.url);
          sendEmbed.push(item.url);
          sentImages++;
@@ -656,13 +705,18 @@ for (var i = 0; i < deezDeets.length; i++){
         //avatar_url: bridgeBuffer['user_av'],
         //rightHook.edit("blanku", bridgeBuffer['user_av'])
         //.then(rightHook => {
+        if (bridgeBuffer['strip'] === "no") {
          rightHook.send(bridgeBuffer['content'], {
           "username": nameToSend,
           "avatarURL": bridgeBuffer['user_av'],
           "files": sendEmbed
-          });
+          }); } else {
+         rightHook.send(bridgeBuffer['content'], {
+          "username": nameToSend,
+          "avatarURL": bridgeBuffer['user_av']
+          }); }
          //}); // closes "then right hook" because it's slow as hell even if it makes the thing work
-        }) // closes THEN HOOKS
+        }) // closes THEN HOOKS 
        .catch(console.error);
       } // closes "if msg mode = w"
      if(bridgeBuffer['msgmode'] == "e") {
@@ -702,7 +756,7 @@ for (var i = 0; i < deezDeets.length; i++){
    if (disFile['filmchannel']['bosses'].indexOf(message.author.id) != -1) isFilmBoss = 1;
    }
   if (server == 0 && message.author.id != disClient.user.id  && (isFilmBoss + isBigBoss) >= 1) {
-   console.log("test");
+   //console.log("test");
    // d ? dFuncs(message, isBigBoss) : doNothing();
    if (disFile['arm'] && (isBigBoss == 1)) {}
     else {disFile['arm'] = 1;}
@@ -717,6 +771,11 @@ for (var i = 0; i < deezDeets.length; i++){
      disFile['arm'] = 99999999; } // Mass arm.
     message.reply("Arm count: " + disFile['arm']);
     } // if it's modifying arm...
+
+   if ((message.content.search(/^pid/) != -1) && (isBigBoss == 1)) {
+    message.reply(process.pid);
+    } // print pid
+
    if ((message.content.search(/^die/) != -1) && (isBigBoss == 1)) {
     if (disFile['arm'] < 1){
      message.reply("Error code NUI: not armed");
@@ -747,7 +806,6 @@ for (var i = 0; i < deezDeets.length; i++){
         .then(message => message.delete())
         .catch(console.error);
        } // if toDelete = 1
-       console.log("im gay");
       } // Closes if on the fetch channel being real.
      } // Closes on if the string is valid.
      } // Closes on if it's armed.
@@ -883,12 +941,12 @@ for (var i = 0; i < deezDeets.length; i++){
 // date format: 25 chars w/offset
 // 2018-12-14T17:41:10-05:00
 
-   if (message.content.search(/^film title/) != -1 && (isBigBoss == 1) && film == "on") {
+   if (message.content.search(/^film title/) != -1 && (isFilmBoss == 1) && film == "on") {
     flickname = message.content.substring(11,999);
     message.reply("Title set: " + flickname + " (" + twoPad(flickrun[1]) + ":" + twoPad(flickrun[2]) + ":" + twoPad(flickrun[3]) + ")");
     } // Closes on if it detects a film command.
 
-   if (message.content.search(/^film hrs/) != -1 && (isBigBoss == 1) && film == "on") {
+   if (message.content.search(/^film hrs/) != -1 && (isFilmBoss == 1) && film == "on") {
     massage = message.content.substring(9,99999);
     flickrun[1] = parseInt(massage.substring(0,massage.indexOf(":")));
     massage = massage.substring(massage.indexOf(":")+1, 9999);
@@ -897,7 +955,7 @@ for (var i = 0; i < deezDeets.length; i++){
     message.reply("Film set: " + flickname + " (" + twoPad(flickrun[1]) + ":" + twoPad(flickrun[2]) + ":" + twoPad(flickrun[3]) + ")");
     } // Closes on if it detects a film command.
 
-   if (message.content.search(/^film mins/) != -1 && (isBigBoss == 1)) {
+   if (message.content.search(/^film mins/) != -1 && (isFilmBoss == 1)) {
     massage = message.content.substring(9,99999);
     totalMinutes = parseInt(massage.substring(0,massage.indexOf(":")));
     flickrun[1] = Math.floor(totalMinutes / 60);
@@ -906,13 +964,14 @@ for (var i = 0; i < deezDeets.length; i++){
     message.reply("Film set: " + flickname + " (" + twoPad(flickrun[1]) + ":" + twoPad(flickrun[2]) + ":" + twoPad(flickrun[3]) + ")");
     } // Closes on if it detects a film command.
 
-   if (message.content.search(/^utc/) != -1 && (isBigBoss == 1) && film === "on") {
+   if (message.content.search(/^utc/) != -1 && (isFilmBoss == 1) && film === "on") {
     message.reply("film set " + now.utc(flick).format());
     } // Closes on if it detects a fromnow command.
 
    if (message.content === 'ping') {
     message.reply('pong');
     }
+
    if (disFile['anon'] === 'on') {
     if (!secrets) {
      var antechamber = disClient.channels.find(x => x.id === configz['bigchamber']['id']);
@@ -939,10 +998,77 @@ for (var i = 0; i < deezDeets.length; i++){
     d && console.log(secrets);
     } // closes "if the damn anonline is even turned on"
 
-   if (message.content.search(/^listguilds/) != -1 && (isBigBoss == 1)) {
-    message.reply("im gay");
+   if (message.content.search(/^ld$/) != -1 && (isBigBoss === 1)) {
+    message.reply("```ld cfg: list / load server config\nld reacts: load reaction config```");
+    }
+
+   var listTheGuilds = 0;
+   var listTheConfigs = 0;
+
+   if (message.content.search(/^ld cfg/) != -1 && (isBigBoss == 1)) {
+    var serverid = parseInt(message.content.slice(7));
+    if (!(serverid < deezDeets.length && serverid > -1)) {
+     message.reply("```Which configuration would you like to load?\nSyntax: ld cfg <index number>```");
+     listTheGuilds = 1;
+     }
+    else {
+     try {
+      allDeets[i] = JSON.parse(fs.readFileSync(deetsFolder + deezDeets[serverid])); 
+      cbotlog("Reloaded config for " + allDiscos[serverid].user.client_name + " (" + deezDeets[serverid] + " / " + allDeets[serverid]['appellation'] + ")");
+      message.reply("Reloaded config for " + allDiscos[serverid].user.username + " (" + deezDeets[serverid] + " / " + allDeets[serverid]['appellation'] + ")");
+      var listTheConfigs = 1;
+      } catch (e) {message.reply("[No valid disco] (" + allDeets[serverid] + " / " + allDeets[serverid]['appellation'] + ")")} 
+     } // if valid server id
+    } // if ld cfg
+
+   if ((message.content.search(/^ls cfg /) != -1 && isBigBoss == 1) || listTheConfigs === 1) {
+    if (!listTheConfigs) var serverid = parseInt(message.content.substring(7, 200));
+    if (!(serverid < deezDeets.length && serverid > -1)) {
+     message.reply("```Which configuration would you like to load?\nSyntax: ld cfg <index number>```");
+     listTheGuilds = 1;
+     }
+    else {
+     replyParceledJson(message, allDeets[serverid], ["token", "register_on_guild", "introed"]);
+     }
+    }
+
+   if (message.content.search(/^ls roles/) != -1 && (isBigBoss == 1)) {
+    var channelString = message.content.slice(9);
     // console.log(disClient.guilds);
     for(var f = 0; f < Object.keys(allDiscos).length; f++){
+     var iterator1 = allDiscos[f].guilds.keys();
+     for (var i = 0; i < allDiscos[f].guilds.size; i++) {
+      //console.log(i);
+      //console.log(allDiscos[f].guilds.keys(i));
+      serverId = iterator1.next().value;
+      if (allDiscos[f].guilds.get(channelString)) {
+       var rolesoutput = "``" + twoPad(allDiscos[f].guilds.get(serverId).roles.size) + "`` for ``" + allDiscos[f].user.id + "`` **\"" + allDiscos[f].user.username + "\"** on ``" + allDiscos[f].guilds.get(serverId).id + "`` **\"" + allDiscos[f].guilds.get(serverId).name + "\"**";
+       var iterator2 = allDiscos[f].guilds.get(serverId).roles.keys();
+       for (var fq = 0; fq < allDiscos[f].guilds.get(serverId).roles.size; fq++){
+        roleId = iterator2.next().value;
+        // console.log(allDiscos[f].guilds.get(serverId).roles.get(roleId));
+        console.log(fq);
+        rolesoutput = rolesoutput + twoPad(fq + 1) + ": " + allDiscos[f].guilds.get(serverId).roles.get(roleId).id + " \"" + allDiscos[f].guilds.get(serverId).roles.get(roleId).name + "\"\n";
+        } // closes loop for iterating over roles. god help our souls
+       rolesoutput = parcelify(1994, rolesoutput, "\n");
+       for (k in rolesoutput) { message.reply("```" + rolesoutput[k] + "```"); }
+       return;
+       } // closes "if there's a server named it!"
+      } // closes for loop
+     } // closes iterator over all discos
+    } // Closes on if it detects a list guilds command.
+
+   if ((message.content.search(/^ls cfg$/) != -1 && isBigBoss == 1) || (listTheGuilds === 1)) { 
+    for (var i = 0; i < deezDeets.length; i++) {
+     try { message.reply("``" + i + "`` " + allDiscos[i].user.username + " (" + deezDeets[i] + " / " + allDeets[i]['appellation'] + ")")} catch (e) {message.reply("``" + i + "``  [No valid disco] (" + allDeets[i] + " / " + allDeets[i]['appellation'] + ")");}
+     // message.reply(allDiscos[i].user.username);
+     //const aNewFile = JSON.parse(fs.readFileSync(deetsFolder + deezDeets[i]));   
+     }
+    }   
+   if (message.content.search(/^ls guilds/) != -1 && isBigBoss == 1) {
+    // console.log(disClient.guilds);
+    for(var f = 0; f < Object.keys(allDiscos).length; f++){
+     if (!allDiscos[f].user) break;
      console.log(allDiscos[f].user.username);
      message.reply("**" + twoPad(allDiscos[f].guilds.size) + "** on ``" + allDiscos[f].user.id + "`` **\"" + allDiscos[f].user.username + "\"**");
      //message.reply(allDiscos[f].guilds.keys());
@@ -954,29 +1080,6 @@ for (var i = 0; i < deezDeets.length; i++){
       //console.log(allDiscos[f].guilds.keys(i));
       serverId = iterator1.next().value;
       message.reply("--> ``" + twoPad(i + 1) + "``: ``" + allDiscos[f].guilds.get(serverId).id + "`` *\"" + allDiscos[f].guilds.get(serverId).name + "\"*");
-      } // closes for loop
-     } // closes iterator over all discos
-    } // Closes on if it detects a list guilds command.
-
-   if (message.content.search(/^listroles/) != -1 && (isBigBoss == 1)) {
-    var channelString = message.content.substring(10, 28);
-    // console.log(disClient.guilds);
-    for(var f = 0; f < Object.keys(allDiscos).length; f++){
-     var iterator1 = allDiscos[f].guilds.keys();
-     for (var i = 0; i < allDiscos[f].guilds.size; i++) {
-      //console.log(i);
-      //console.log(allDiscos[f].guilds.keys(i));
-      serverId = iterator1.next().value;
-      if (allDiscos[f].guilds.get(channelString)) {
-       message.reply("``" + twoPad(allDiscos[f].guilds.get(serverId).roles.size) + "`` for ``" + allDiscos[f].user.id + "`` **\"" + allDiscos[f].user.username + "\"** on ``" + allDiscos[f].guilds.get(serverId).id + "`` **\"" + allDiscos[f].guilds.get(serverId).name + "\"**");
-       var iterator2 = allDiscos[f].guilds.get(serverId).roles.keys();
-       for (var fq = 0; fq < allDiscos[f].guilds.get(serverId).roles.size; fq++){
-        roleId = iterator2.next().value;
-        console.log(allDiscos[f].guilds.get(serverId).roles.get(roleId));
-        message.reply("``" + twoPad(fq + 1) + "``: ``" + allDiscos[f].guilds.get(serverId).roles.get(roleId).id + "`` \"" + allDiscos[f].guilds.get(serverId).roles.get(roleId).name + "\"");
-        } // closes loop for iterating over roles. god help our souls
-       return;
-       } // closes "if there's a server named it!"
       } // closes for loop
      } // closes iterator over all discos
     } // Closes on if it detects a list guilds command.
@@ -1069,12 +1172,13 @@ for (var i = 0; i < deezDeets.length; i++){
 
    if (message.content.search(/^help/) != -1) {
     if (isBigBoss === 1) {
-     message.reply("**ADMIN COMMANDS**\n```arm [ ++ | -- | 0 | x ]: increase arm count for dangerous commands\ndie: exit process (requires arm)\nbad[ + | - ] [user ID]: + adds/removes user to badlist (if flags set) and prints badlist.\nbrankav: loads b64.png and sets as avatar (broken)\nlistguilds\nlistroles [guild ID]\nscraperoles [guild ID]: scrapes all guild user roles to roles.json (must have rolecatcher flag enabled in config.json)\n[ ld | sv] reacts: loads/saves reaccs.json and introduced.json.```");
+     message.reply("**ADMIN COMMANDS**\n```arm [ ++ | -- | 0 | x ]: increase arm count for dangerous commands\ndie: exit process (requires arm)\nbad[ + | - ] [user ID]: + adds/removes user to badlist (if flags set) and prints badlist.\nbrankav: loads b64.png and sets as avatar (broken)\nls guilds\nls roles [guild ID]\nscraperoles [guild ID]: scrapes all guild user roles to roles.json (must have rolecatcher flag enabled in config.json)\n[ ld | sv] reacts: loads/saves reaccs.json and introduced.json.```");
      }
     if (isFilmBoss === 1) {
      message.reply("**FILM COMMANDS**\n```utc: Produces UTC timestamp for right now, in ISO 6801 format. Remember to modify this string before setting the film!\nfilm mins: Set film runtime, in minutes. Format it like: 123:45\nfilm hrs: Set film runtime, in hours. Format it like: 02:03:45\nfilm title: Set film title. Limit is 999 characters.\nfilm set: Queue the film for watching. This WILL send messages in the channel, so don't mess it up. Format it like: film set 2045-01-29T21:08:59Z\nfilm cancel: So you messed it up, huh? This will cancel all outstanding countdowns and announcements.```");
      }
    } // closes "if help command"
+
 
 
 
@@ -1120,18 +1224,103 @@ for (var i = 0; i < deezDeets.length; i++){
    if (message.content === "We're about to start having fun.") {
     setTimeout(function() {message.channel.send("**This isn't even my final form!**")}, 3000);
     } // closes lol
-   if (message.content.search(/meow/) != -1) {
+// && message.channel.id === "345047533099286550"
+   if (message.content === "!hottake" && hts === "on") {
+    var randint = Math.floor(Math.random() * 9);
+    switch (randint) {
+     case 1:
+      message.channel.send("Why We Need More " + randArray(oppressed) + " " + randArray(professions));
+      break;
+     case 2:
+      message.channel.send(randArray(professions) + " Have A Big " + randArray(oppressed) + " Problem" + randArray(["", " -- And " + randArray(professions) + " Are To Blame"]));
+      break;
+     case 3:
+      message.channel.send("Meet The Bro" + randArray(professions));
+      break;
+     case 4:
+      message.channel.send("How " + randArray(professions) + " Are Enabling " + randArray(oppression));
+      break;
+     case 5:
+      message.channel.send("Should The Government Ban " + randArray(professions) + randArray(["To End " + randArray(oppression), ""]) + "?");
+      break;
+     case 6:
+      message.channel.send("Why Are We Still Talking About " + randArray(professions) + "? We Should Be Concerned About Their " + randArray(oppressed) + " Victims");
+      break;
+     case 7:
+      message.channel.send("The " + randArray(oppressed) + " " + randArray(oppressed) + " Activist Behind This Year's Biggest Anti-" + randArray(oppression) + " Hashtag Speaks Out");
+      break;
+     case 8:
+      message.channel.send("We Need To Talk About " + randArray(professions));
+      break;
+     default:
+      message.channel.send("In 2019, " + randArray(oppression) + " Is Still Rampant Among " + randArray(professions));
+      break;
+     }
+    } // closes lol
+
+   if (message.content === "!boomertake" && hts === "on") {
+    var randint = Math.floor(Math.random() * 6);
+    switch (randint) {
+     case 1:
+      message.channel.send("Why " + randArray(oppression) + " Is Good");
+      break;
+     case 2:
+      message.channel.send("Alarming Numbers Of Teens Now Identify As " + randArray(oppressed) + " ");
+      break;
+     case 3:
+      message.channel.send("How To Tell If You're Paying Too Much For Your " + randArray(professions));
+      break;
+     case 4:
+      message.channel.send("Should The Government Ban " + randArray(oppressed) + " People?");
+      break;
+     case 5:
+      message.channel.send(randArray(professions) + " HATE Her! One Weird Trick Discovered By A Mom");
+      break;
+     case 6:
+      message.channel.send(randArray(professions) + " HATE Her! One Weird Trick Discovered By A Mom");
+      break;
+     case 7:
+      message.channel.send("ATTN: " + randArray(professions) + " Who Haven't Had A Traffic Ticket In 5 Years");
+      break;
+     case 8:
+      message.channel.send("BREAKING: Thousands Of People Making " + (Math.floor(Math.random() * 25) + 30) + "/hr Working From Home As " + randArray(professions) + "!");
+      break;
+     default:
+      message.channel.send("Are Millenials Putting " + randArray(professions) + " Out Of Business?");
+      break;
+     }
+    } // closes lol
+   if (message.content.search(/meow/) != -1 && disFile['meow'] === "on") {
     message.react('🐈');
     // this is the unicode for a cat, it's not blank.
     // it's one character, despite taking up many spaces
     }
-   if (message.content.search(/freeze peach/) != -1) {
+   if (message.content.search(/freeze peach/) != -1 && disFile['meow'] === "on") {
     message.react('❄');
     // this is the unicode for a snowflake, it's not blank.
     setTimeout(function() {message.react('🍑')}, 500);
     // unicode: peach. it's one character, despite taking up many spaces
     }
 
+   if (message.content.search(/disc horse/) != -1 && disFile['meow'] === "on") {
+    message.react('📀');
+    // this is the unicode for a snowflake, it's not blank.
+    setTimeout(function() {message.react('🐎')}, 500);
+    // unicode: dvd and horse
+    }
+
+   if (message.content.search(/^!rot13/) != -1) {
+    if (message.author.id === disClient.user.id) {return;}
+    if (message.content.length < 8) {return;}
+    pessage = message.content.substr(7, 2000);
+    // if (pessage.length % 2 === 0) {return;}
+    message.reply(rot13(pessage))
+    .then(mussage => {
+     mussage.react('🕜');
+     // UNICODE: 1F55C CLOCK FACE ONE-THIRTY 
+     });
+    message.delete();
+    } // if it's rrrrr
 
    if (message.content.search(/Debate me./) != -1 && configz['debate'] === "on") {
     if (lastInter === message.author.id) {return;}
@@ -1214,7 +1403,8 @@ for (var i = 0; i < deezDeets.length; i++){
      'hook_tk' : disFile['bridges'][mcid]['hook_token'],
      'msgmode' : disFile['bridges'][mcid]['mode'],
      'methode' : 'post',
-     'attache' : message.attachments
+     'attache' : message.attachments,
+     'strip'   : disFile['bridges'][mcid]['strip']
      };
     for(var d = 0; d < Object.keys(allDiscos).length; d++){
      // console.log(Object.keys(allDiscos[d].guilds));
@@ -1269,7 +1459,8 @@ for (var i = 0; i < deezDeets.length; i++){
     doNothing(message, isBigBoss);
     // }
     }
-   console.log(disFile['appellation'] + ": " + message);
+   // this is the line that logs all messages
+   console.log(date() + " " + message.channel.name + ": " + message);
    if (message.content === "pingas") {
     message.reply('usual, i see');
     v && isBigBoss && console.log('big boss in the house');
@@ -1331,23 +1522,23 @@ function date() {
 function botlog (message) {
  var filename;
  try { fs.mkdirSync(logFolder) } catch(e) {}
- try { fs.readFileSync(`${logFolder}/aoide.log`) } catch(e) {}
- fs.appendFileSync(`${logFolder}/aoide.log`, '\n[' + `${date()}` + "] " + message);
+ try { fs.readFileSync(`${logFolder}/event.log`) } catch(e) {console.log("Error: could not access botlog");}
+ fs.appendFileSync(`${logFolder}/event.log`, '\n[' + `${date()}` + "] " + message);
  } // closes botlog
 
 function cbotlog (message) {
  var filename;
  console.log(message);
  try { fs.mkdirSync(logFolder) } catch(e) {}
- try { fs.readFileSync(`${logFolder}/aoide.log`) } catch(e) {}
- fs.appendFileSync(`${logFolder}/aoide.log`, '\n[' + `${date()}` + "] " + message);
+ try { fs.readFileSync(`${logFolder}/event.log`) } catch(e) {console.log("Error: could not access botlog");}
+ fs.appendFileSync(`${logFolder}/event.log`, '\n[' + `${date()}` + "] " + message);
  } // closes cbotlog
 
-function dumblog (message) {
+function memberlog (message) {
  var filename;
  try { fs.mkdirSync(logFolder) } catch(e) {}
- try { fs.readFileSync(`${logFolder}/sleuth.log`) } catch(e) {}
- fs.appendFileSync(`${logFolder}/sleuthery.log`, message);
+ try { fs.readFileSync(`${logFolder}/members.log`) } catch(e) {console.log("Error: could not access member log");}
+ fs.appendFileSync(`${logFolder}/members.log`, '\n[' + `${date()}` + "] " + message);
  } // closes dumblog
 
 function objectlog (whatever) {
@@ -1413,3 +1604,74 @@ function twoPad (input) {
  return "0" + input;
  }
 
+function zPad (input, n) {
+input = input.toString();
+ while (input.length < n) {
+  input = "0" + input;
+  }
+ return input;
+ }
+
+function xPad (input, n, x) {
+input = input.toString();
+ while (input.length < n) {
+  input = x + input;
+  }
+ return input;
+ }
+
+function rot13 (input) {
+ var rot00 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+ var rot13 = "nopqrstuvwxyzabcdefghijklmNOPQRSTUVWXYZABCDEFGHIJKLM";
+ var rotten = "";
+ for(var ii = 0; ii < input.length; ii++) {
+  rot00index = rot00.indexOf(input.substr(ii, 1));
+  if (rot00index === -1) {rotten = rotten + input.substr(ii, 1)}
+  if (rot00index != -1) {rotten = rotten + rot13.substr(rot00index, 1)}
+  } // closes for
+ return rotten;
+ } // closes rot13
+
+function randArray(array) {
+ return array[Math.floor(Math.random() * array.length)];
+ }
+
+function parcelify(limit, input, breaker) {
+ var midput = [];
+ console.log(input.substr(1900,  500));
+ while (input.length > limit) {
+  var index = input.indexOf(breaker);
+  console.log("Index is " + index);
+  if (index >= limit || index === -1) {
+   midput.push(input.substr(0, limit));
+   input = input.slice(limit);
+   console.log("xx" + input);
+   } // handle if it's too long
+  else {
+   latest = 1;
+   console.log("Index is now " + input.indexOf(breaker, latest));
+   while (input.indexOf(breaker, latest+1) < limit) {
+    latest = input.indexOf(breaker, latest+1);
+    console.log("Index is now " + input.indexOf(breaker, latest));
+    }
+   console.log(latest); 
+   midput.push(input.substr(0, latest));
+   input = input.slice(latest);
+   } // else
+ } // while input length is less than limit
+ midput.push(input);
+ return midput;
+ } // function def for parcelify
+
+function replyParceledJson (message, json, spicyEntries) {
+ var index = -1;
+ var cfgmidput = "";
+ for (j in json) {
+  index++;
+  if (!spicyEntries.includes(j)) cfgmidput = cfgmidput + xPad(index, 3, " ") + " " + j + " : " + json[j] + "\n";
+  else cfgmidput = cfgmidput + xPad(index, 3, " ") + " [redacted] : [redacted]\n";
+  } // iterate to find deets
+  cfgoutput = parcelify(1994, cfgmidput, "\n");
+ console.log(cfgoutput);
+ for (k in cfgoutput) { message.reply("```" + cfgoutput[k] + "```"); }
+ }

@@ -259,7 +259,7 @@ for (var i = 0; i < deezDeets.length; i++){
  allDeets.push(disFile);
 
 disClient.on('error', (errorEvent) => {
-  cbotlog(errorEvent.message)
+  cbotlog(errorEvent.message);
 })
 
  // this is the startup routine that iterates over every client when it connects
@@ -332,7 +332,6 @@ disClient.on('error', (errorEvent) => {
 
   // see: https://github.com/AnIdiotsGuide/discordjs-bot-guide/blob/master/coding-guides/raw-events.md
   // that's what this is adapted from
-  //others: GUILD_MEMBER_UPDATE
  disClient.on('raw', packet => {
   d && console.log(date());
   d && console.log(packet);
@@ -348,7 +347,6 @@ disClient.on('error', (errorEvent) => {
      } catch (e) {console.log("Error: no roles json found.")}
     } // if rolecatcher's on and it's on the monitored server
    } // if it's a guild member update 
-
 
   if(packet.t === 'GUILD_MEMBER_REMOVE' && disFile['memberlog'] === "on") {
    memberlog("REM: " + packet.d.guild_id + " / " + packet.d.user.id + " (" + packet.d.user.username + "#" + packet.d.user.discriminator + ")");
@@ -371,7 +369,6 @@ disClient.on('error', (errorEvent) => {
    } // if there's a roles entry for the user id
   } // if it's a guild member add
 
-  //console.log(packet);
   // this will re-emit events for emoji add/remove and deletions on non-cached messages
   // basically it accounts for discord.js being stupid and not doing this
   if (configz.sec) {
@@ -492,9 +489,6 @@ disClient.on('error', (errorEvent) => {
   }); // closes out handler for raw event
 
  disClient.on('bessageReactionAdd', (messageReaction, user) => {
-  // console.log(messageReaction);
-  // console.log('asdf');
-  // console.log(messageReaction._emoji.name + " from " + messageReaction._users);
   var mcid = messageReaction.message.channel.id;
   var mid = messageReaction.message.id;
   if (messageReaction._emoji.name ===  "🕜") {
@@ -549,9 +543,7 @@ disClient.on('error', (errorEvent) => {
   }); // messageReactionAdd handler 
 
  disClient.on('bessageReactionRemove', (messageReaction, user) => {
-  // d && console.log(messageReaction.count);
-  // d && console.log('asdf');
-  // d && console.log(messageReaction._emoji.name + " from " + messageReaction._users);
+
   var mcid = messageReaction.message.channel.id;
   var mid = messageReaction.message.id;
 
@@ -611,8 +603,7 @@ disClient.on('error', (errorEvent) => {
   }) // end of handler for messageDelete ohh yeah
 
  disClient.on('bridgedMessage', bridgeBuffer => {
-  //console.log("Bridgin");
-  //console.log(disClient.guilds);
+
   serv = disClient.guilds.find(x => x.id === bridgeBuffer['dest_sv']);
   dest = serv.channels.find(x => x.id === bridgeBuffer['dest_ch']);
   if (!dest) {cbotlog("ERROR: Bridge " + bridgeBuffer['dest_ch'] + " (on " + bridgeBuffer['dest_sv'] + ") is bad!");}
@@ -644,7 +635,6 @@ disClient.on('error', (errorEvent) => {
         function reacc(message) {
          dest.fetchMessage(bridged[bridgeBuffer['message']]);
          if (bridged[bridgeBuffer['message']]) {
-          // d && console.log("reaccing " + message.content);
           message.react(bridgeBuffer['reacced']);
           } // if the message was bridged, go ahead and baleet it, and push its ID
          } // defines function for baleeting
@@ -678,15 +668,10 @@ disClient.on('error', (errorEvent) => {
       // Mentions have a couple dumb behaviors at the moment.
       } // if msgmode is "w" or "e"
      if(bridgeBuffer['msgmode'] == "w") {
-      //https://discordapp.com/api/webhooks/521012475685240842/bmtSFMVoXLk17Sh2Q4iK23LF2XYc9-OC7Rv7i-ii1YaGJ7kCiEtpIbm_U644ScKcxbia",
       //console.log(bridgeBuffer['message']);
       // var disHook = new Discord.WebhookClient("Webhook ID", "Webhook Token");
       dest.fetchWebhooks()
        .then(hooks => {
-        //console.log(hooks);
-        // console.log(hooks.find('id', bridgeBuffer['hook_id']));
-        //hooks.find('id', bridgeBuffer['hook_id']).send(bridgeBuffer['content']);
-        // hooks.find('id', bridgeBuffer['hook_id']).edit(bridgeBuffer['user_dn'], bridgeBuffer['user_av'])
         var sentImages = 0;
         sendEmbed = [];
         bridgeBuffer['attache'].forEach(item => {
@@ -700,8 +685,6 @@ disClient.on('error', (errorEvent) => {
          nameToSend = serv.members.find(x => x.id === bridgeBuffer['user_id']).displayName;
          }
         if (nameToSend.length === 1) nameToSend = nameToSend + ".";
-        // 
-        //https://cdn.discordapp.com/avatars/134073775925886976/970d33bddeb40f9b7a20f7524a6b07f5.png?size=2048
         //avatar_url: bridgeBuffer['user_av'],
         //rightHook.edit("blanku", bridgeBuffer['user_av'])
         //.then(rightHook => {
@@ -715,7 +698,6 @@ disClient.on('error', (errorEvent) => {
           "username": nameToSend,
           "avatarURL": bridgeBuffer['user_av']
           }); }
-         //}); // closes "then right hook" because it's slow as hell even if it makes the thing work
         }) // closes THEN HOOKS 
        .catch(console.error);
       } // closes "if msg mode = w"
@@ -757,7 +739,6 @@ disClient.on('error', (errorEvent) => {
    }
   if (server == 0 && message.author.id != disClient.user.id  && (isFilmBoss + isBigBoss) >= 1) {
    //console.log("test");
-   // d ? dFuncs(message, isBigBoss) : doNothing();
    if (disFile['arm'] && (isBigBoss == 1)) {}
     else {disFile['arm'] = 1;}
    if (message.content.search(/^arm/) != -1 && isBigBoss == 1) {
@@ -910,9 +891,6 @@ disClient.on('error', (errorEvent) => {
        timerinc++;
        console.log(timerinc + " after");
        }, intToStart)); // closes timeout
-      //console.log(timeoutz.length);
-      //console.log("timeout set");
-      //console.log(timeoutz[timeoutz.length-1]);
       } // closes "if the timeout interval is a positive number, i.e. if it hasn't happened yet"
      else {
       timeoutz.push(setTimeout(function () {
@@ -1061,8 +1039,7 @@ disClient.on('error', (errorEvent) => {
    if ((message.content.search(/^ls cfg$/) != -1 && isBigBoss == 1) || (listTheGuilds === 1)) { 
     for (var i = 0; i < deezDeets.length; i++) {
      try { message.reply("``" + i + "`` " + allDiscos[i].user.username + " (" + deezDeets[i] + " / " + allDeets[i]['appellation'] + ")")} catch (e) {message.reply("``" + i + "``  [No valid disco] (" + allDeets[i] + " / " + allDeets[i]['appellation'] + ")");}
-     // message.reply(allDiscos[i].user.username);
-     //const aNewFile = JSON.parse(fs.readFileSync(deetsFolder + deezDeets[i]));   
+     // message.reply(allDiscos[i].user.username); 
      }
     }   
    if (message.content.search(/^ls guilds/) != -1 && isBigBoss == 1) {

@@ -737,45 +737,66 @@ disClient.on('error', (errorEvent) => {
   if (disFile['film']) {
    if (disFile['filmchannel']['bosses'].indexOf(message.author.id) != -1) isFilmBoss = 1;
    }
+  var gotMsg = message.content;
   if (server == 0 && message.author.id != disClient.user.id  && (isFilmBoss + isBigBoss) >= 1) {
    //console.log("test");
+   if (message.content.search(/^<pid /) != -1) {
+    if (message.content.substring(5, message.content.indexOf(">")) != process.pid) {
+     gotMsg = "";
+     return;
+     } else {
+      message.reply("Executing on PID " + process.pid);
+      gotMsg = message.content.slice(message.content.indexOf(">") + 2);
+      }
+    }   
+   if (message.content.search(/^<!pid /) != -1) {
+    if (message.content.substring(6, message.content.indexOf(">")) === process.pid) {
+     gotMsg = "";
+     return;
+     } else {
+      message.reply("Executing on PID " + process.pid);
+      gotMsg = message.content.slice(message.content.indexOf(">") + 2);
+      }
+    }   
+   
+
    if (disFile['arm'] && (isBigBoss == 1)) {}
     else {disFile['arm'] = 1;}
-   if (message.content.search(/^arm/) != -1 && isBigBoss == 1) {
-    if (message.content.search(/^arm\+\+/) != -1) {
+   if (gotMsg.search(/^arm/) != -1 && isBigBoss == 1) {
+    if (gotMsg.search(/^arm\+\+/) != -1) {
      disFile['arm'] = disFile['arm'] + 1; } // Add one to arm count.
-    if (message.content.search(/^arm\-\-/) != -1) {
+    if (gotMsg.search(/^arm\-\-/) != -1) {
      disFile['arm'] = disFile['arm'] - 1; } // Reduce arm count by 1.
-    if (message.content.search(/^arm 0/) != -1) {
+    if (gotMsg.search(/^arm 0/) != -1) {
      disFile['arm'] = 0; } // Disarm entirely.
-    if (message.content.search(/^arm x/) != -1) {
+    if (gotMsg.search(/^arm x/) != -1) {
      disFile['arm'] = 99999999; } // Mass arm.
     message.reply("Arm count: " + disFile['arm']);
     } // if it's modifying arm...
 
-   if ((message.content.search(/^pid/) != -1) && (isBigBoss == 1)) {
+   if ((gotMsg.search(/^pid/) != -1) && (isBigBoss == 1)) {
     message.reply(process.pid);
     } // print pid
 
-   if ((message.content.search(/^die/) != -1) && (isBigBoss == 1)) {
+   if ((gotMsg.search(/^die/) != -1) && (isBigBoss == 1)) {
     if (disFile['arm'] < 1){
      message.reply("Error code NUI: not armed");
      } // If unarmed.
     else{process.abort();} // This kills the Electro-Magistrate.
     } // closes code for "die"
-   if (message.content.search(/^purge/) != -1 && (isBigBoss == 1)) {
+   if (gotMsg.search(/^purge/) != -1 && (isBigBoss == 1)) {
     if (disFile['arm'] < 1){
      message.reply("Error code NUI: not armed");
      }
     else{
      disFile['arm'] = disFile['arm'] - 1;
-      if (message.content.substring(6,24) == message.content.substring(6,23)){
+      if (gotMsg.substring(6,24) == gotMsg.substring(6,23)){
      message.reply("Invalid channel ID string.");
      disFile['arm']++;
      }
       else{
-     var fetchid = message.content.substring(6,24);
-     var todelete = message.content.substring(25,36);
+     var fetchid = gotMsg.substring(6,24);
+     var todelete = gotMsg.substring(25,36);
      if (todelete != parseInt(todelete, 10)) {todelete = 1}
      message.reply("Arm count: " + disFile['arm'] + " / Fetch ID: " + fetchid + " (" + todelete + " messages)");
      fetchChannel = disClient.channels.find(x => x.id === fetchid);
@@ -791,7 +812,7 @@ disClient.on('error', (errorEvent) => {
      } // Closes on if the string is valid.
      } // Closes on if it's armed.
     } // Closes on if it detects a purge.
-   if (message.content.search(/^brankav/) != -1  && isBigBoss == 1) {
+   if (gotMsg.search(/^brankav/) != -1  && isBigBoss == 1) {
     if (disFile['arm'] < 1){
      message.reply("Error code NUI: not armed");
      } // If it's unarmed.
@@ -804,24 +825,24 @@ disClient.on('error', (errorEvent) => {
      } // Closes on if it's armed.
     } // Closes on if it detects an avatar reset.
 
-   if (message.content.search(/^bad/) != -1 && (isBigBoss == 1)) {
+   if (gotMsg.search(/^bad/) != -1 && (isBigBoss == 1)) {
     if (disFile['arm'] < 1){
      message.reply("Error code NUI: not armed");
      } // If unarmed.
     else{
      disFile['arm'] = disFile['arm'] - 1;
-      if(message.content.search(/^bad\+/) != -1) {
-     if((message.content.substring(5,22) != message.content.substring(5,21)) && (message.content.substring(5,23) == message.content.substring(5,24))) {
-      badlist.push(message.content.substring(5,23));
+      if(gotMsg.search(/^bad\+/) != -1) {
+     if((gotMsg.substring(5,22) != gotMsg.substring(5,21)) && (gotMsg.substring(5,23) == gotMsg.substring(5,24))) {
+      badlist.push(gotMsg.substring(5,23));
       } // Add user ID to badlist.
      else {
       message.reply("Error: this isn't a user ID");
       } // If user ID is invalid.
      } // closes if "bad+"
-      if(message.content.search(/^bad\-/) != -1) {
-     if((message.content.substring(5,22) != message.content.substring(5,21)) &&(message.content.substring(5,23) == message.content.substring(5,24))) {
-      if(badlist.indexOf(message.content.substring(5,23)) != -1) {
-      badlist.splice(badlist.indexOf(message.content.substring(5,23)), 1);
+      if(gotMsg.search(/^bad\-/) != -1) {
+     if((gotMsg.substring(5,22) != gotMsg.substring(5,21)) &&(gotMsg.substring(5,23) == gotMsg.substring(5,24))) {
+      if(badlist.indexOf(gotMsg.substring(5,23)) != -1) {
+      badlist.splice(badlist.indexOf(gotMsg.substring(5,23)), 1);
       }
       else { message.reply("Error: ID not in badlist"); }
       }
@@ -836,7 +857,7 @@ disClient.on('error', (errorEvent) => {
 
 
 
-   if (message.content.search(/^film cancel/) != -1 && (isFilmBoss == 1) && film == "on") {
+   if (gotMsg.search(/^film cancel/) != -1 && (isFilmBoss == 1) && film == "on") {
     for(var i = 0; i < Object.keys(timeoutz).length ; i++) {
      // console.log(timeoutz[i]);
      clearTimeout(timeoutz[i]);
@@ -845,8 +866,8 @@ disClient.on('error', (errorEvent) => {
     timeoutz = [];
     }
 
-   if (message.content.search(/^film set/) != -1 && (isFilmBoss == 1) && film == "on") {
-    dateString = message.content.substring(9,34);
+   if (gotMsg.search(/^film set/) != -1 && (isFilmBoss == 1) && film == "on") {
+    dateString = gotMsg.substring(9,34);
     flick = now.utc(dateString);
     // message.reply(dateString + " (" + flickname + ")");
     disClient.guilds.get(disFile['server_id']).channels.get(disFile['filmchannel']['id']).send(now.utc(dateString).fromNow());
@@ -919,13 +940,13 @@ disClient.on('error', (errorEvent) => {
 // date format: 25 chars w/offset
 // 2018-12-14T17:41:10-05:00
 
-   if (message.content.search(/^film title/) != -1 && (isFilmBoss == 1) && film == "on") {
-    flickname = message.content.substring(11,999);
+   if (gotMsg.search(/^film title/) != -1 && (isFilmBoss == 1) && film == "on") {
+    flickname = gotMsg.substring(11,999);
     message.reply("Title set: " + flickname + " (" + twoPad(flickrun[1]) + ":" + twoPad(flickrun[2]) + ":" + twoPad(flickrun[3]) + ")");
     } // Closes on if it detects a film command.
 
-   if (message.content.search(/^film hrs/) != -1 && (isFilmBoss == 1) && film == "on") {
-    massage = message.content.substring(9,99999);
+   if (gotMsg.search(/^film hrs/) != -1 && (isFilmBoss == 1) && film == "on") {
+    massage = gotMsg.substring(9,99999);
     flickrun[1] = parseInt(massage.substring(0,massage.indexOf(":")));
     massage = massage.substring(massage.indexOf(":")+1, 9999);
     flickrun[2] = parseInt(massage.substring(0,massage.indexOf(":")));
@@ -933,8 +954,8 @@ disClient.on('error', (errorEvent) => {
     message.reply("Film set: " + flickname + " (" + twoPad(flickrun[1]) + ":" + twoPad(flickrun[2]) + ":" + twoPad(flickrun[3]) + ")");
     } // Closes on if it detects a film command.
 
-   if (message.content.search(/^film mins/) != -1 && (isFilmBoss == 1)) {
-    massage = message.content.substring(9,99999);
+   if (gotMsg.search(/^film mins/) != -1 && (isFilmBoss == 1)) {
+    massage = gotMsg.substring(9,99999);
     totalMinutes = parseInt(massage.substring(0,massage.indexOf(":")));
     flickrun[1] = Math.floor(totalMinutes / 60);
     flickrun[2] = totalMinutes % 60;
@@ -942,11 +963,11 @@ disClient.on('error', (errorEvent) => {
     message.reply("Film set: " + flickname + " (" + twoPad(flickrun[1]) + ":" + twoPad(flickrun[2]) + ":" + twoPad(flickrun[3]) + ")");
     } // Closes on if it detects a film command.
 
-   if (message.content.search(/^utc/) != -1 && (isFilmBoss == 1) && film === "on") {
+   if (gotMsg.search(/^utc/) != -1 && (isFilmBoss == 1) && film === "on") {
     message.reply("film set " + now.utc(flick).format());
     } // Closes on if it detects a fromnow command.
 
-   if (message.content === 'ping') {
+   if (gotMsg === 'ping') {
     message.reply('pong');
     }
 
@@ -972,35 +993,45 @@ disClient.on('error', (errorEvent) => {
      console.log(secrets);
      console.log(sterces);
      } // closes "if there's no secret with that id"
-    antechamber.send(secrets[message.author.id] + ' : ' + message.content);
+    antechamber.send(secrets[message.author.id] + ' : ' + gotMsg);
     d && console.log(secrets);
     } // closes "if the damn anonline is even turned on"
 
-   if (message.content.search(/^ld$/) != -1 && (isBigBoss === 1)) {
+   if (gotMsg.search(/^ld$/) != -1 && (isBigBoss === 1)) {
     message.reply("```ld cfg: list / load server config\nld reacts: load reaction config```");
     }
 
    var listTheGuilds = 0;
    var listTheConfigs = 0;
 
-   if (message.content.search(/^ld cfg/) != -1 && (isBigBoss == 1)) {
-    var serverid = parseInt(message.content.slice(7));
+   if (gotMsg.search(/^ld cfg/) != -1 && (isBigBoss == 1)) {
+    var serverid = parseInt(gotMsg.slice(7));
     if (!(serverid < deezDeets.length && serverid > -1)) {
      message.reply("```Which configuration would you like to load?\nSyntax: ld cfg <index number>```");
      listTheGuilds = 1;
      }
     else {
      try {
-      allDeets[i] = JSON.parse(fs.readFileSync(deetsFolder + deezDeets[serverid])); 
+      allDeets[serverid] = JSON.parse(fs.readFileSync(deetsFolder + deezDeets[serverid])); 
       cbotlog("Reloaded config for " + allDiscos[serverid].user.client_name + " (" + deezDeets[serverid] + " / " + allDeets[serverid]['appellation'] + ")");
       message.reply("Reloaded config for " + allDiscos[serverid].user.username + " (" + deezDeets[serverid] + " / " + allDeets[serverid]['appellation'] + ")");
       var listTheConfigs = 1;
+      try {
+       allDeets[serverid]['introed'] = JSON.parse(fs.readFileSync(dataFolder + allDeets[serverid]['server_id'] + "/introduced.json"));
+       console.log("Introduced users list loaded.");
+       message.reply("Introduced users list loaded.");
+       } catch (e) {message.reply("Error: no intro'd json found.")} 
+      try {
+       allDeets[serverid]['reaccs'] = JSON.parse(fs.readFileSync(dataFolder + allDeets[serverid]['server_id'] + "/reaccs.json"));
+       console.log("React config loaded.");
+       message.reply("React config loaded.");
+       } catch (e) {message.reply("Error: no reaccs json found.")} 
       } catch (e) {message.reply("[No valid disco] (" + allDeets[serverid] + " / " + allDeets[serverid]['appellation'] + ")")} 
      } // if valid server id
     } // if ld cfg
 
-   if ((message.content.search(/^ls cfg /) != -1 && isBigBoss == 1) || listTheConfigs === 1) {
-    if (!listTheConfigs) var serverid = parseInt(message.content.substring(7, 200));
+   if ((gotMsg.search(/^ls cfg /) != -1 && isBigBoss == 1) || listTheConfigs === 1) {
+    if (!listTheConfigs) var serverid = parseInt(gotMsg.substring(7, 200));
     if (!(serverid < deezDeets.length && serverid > -1)) {
      message.reply("```Which configuration would you like to load?\nSyntax: ld cfg <index number>```");
      listTheGuilds = 1;
@@ -1010,8 +1041,8 @@ disClient.on('error', (errorEvent) => {
      }
     }
 
-   if (message.content.search(/^ls roles/) != -1 && (isBigBoss == 1)) {
-    var channelString = message.content.slice(9);
+   if (gotMsg.search(/^ls roles/) != -1 && (isBigBoss == 1)) {
+    var channelString = gotMsg.slice(9);
     // console.log(disClient.guilds);
     for(var f = 0; f < Object.keys(allDiscos).length; f++){
      var iterator1 = allDiscos[f].guilds.keys();
@@ -1036,13 +1067,13 @@ disClient.on('error', (errorEvent) => {
      } // closes iterator over all discos
     } // Closes on if it detects a list guilds command.
 
-   if ((message.content.search(/^ls cfg$/) != -1 && isBigBoss == 1) || (listTheGuilds === 1)) { 
+   if ((gotMsg.search(/^ls cfg$/) != -1 && isBigBoss == 1) || (listTheGuilds === 1)) { 
     for (var i = 0; i < deezDeets.length; i++) {
      try { message.reply("``" + i + "`` " + allDiscos[i].user.username + " (" + deezDeets[i] + " / " + allDeets[i]['appellation'] + ")")} catch (e) {message.reply("``" + i + "``  [No valid disco] (" + allDeets[i] + " / " + allDeets[i]['appellation'] + ")");}
      // message.reply(allDiscos[i].user.username); 
      }
     }   
-   if (message.content.search(/^ls guilds/) != -1 && isBigBoss == 1) {
+   if (gotMsg.search(/^ls guilds/) != -1 && isBigBoss == 1) {
     // console.log(disClient.guilds);
     for(var f = 0; f < Object.keys(allDiscos).length; f++){
      if (!allDiscos[f].user) break;
@@ -1061,18 +1092,18 @@ disClient.on('error', (errorEvent) => {
      } // closes iterator over all discos
     } // Closes on if it detects a list guilds command.
    
-   if (message.content.search(/^echo /) != -1 && (isBigBoss == 1)) {
-    var chanid = message.content.substring(5, 23);
-    var sendpart = message.content.substring(24, 2024);
+   if (gotMsg.search(/^echo /) != -1 && (isBigBoss == 1)) {
+    var chanid = gotMsg.substring(5, 23);
+    var sendpart = gotMsg.substring(24, 2024);
     disClient.channels.get(chanid).send(sendpart);
     }
 
-   if (message.content.search(/^scraperoles /) != -1 && (isBigBoss == 1)) {
+   if (gotMsg.search(/^scraperoles /) != -1 && (isBigBoss == 1)) {
     if (disFile['rolecatcher'] != "on") {
      message.reply("ERROR: rolecatcher disabled");
      return;
      }
-    var servid = message.content.substring(12, 30);
+    var servid = gotMsg.substring(12, 30);
     var iterMemb = disClient.guilds.get(servid).members.keys();
     for (var fq = 0; fq < disClient.guilds.get(servid).members.size; fq++){
      memberId = iterMemb.next().value;
@@ -1098,11 +1129,11 @@ disClient.on('error', (errorEvent) => {
 
 
 
-   if (message.content.search(/^template/) != -1 && (isBigBoss == 1)) {
+   if (gotMsg.search(/^template/) != -1 && (isBigBoss == 1)) {
     message.reply("template");
     }
 
-   if (message.content.search(/^ld reacts/) != -1 && (isBigBoss == 1)) {
+   if (gotMsg.search(/^ld reacts/) != -1 && (isBigBoss == 1)) {
     try {
      disFile['introed'] = JSON.parse(fs.readFileSync(dataFolder + disFile['server_id'] + "/introduced.json"));
      console.log("Introduced users list loaded.");
@@ -1115,7 +1146,7 @@ disClient.on('error', (errorEvent) => {
      } catch (e) {message.reply("Error: no reaccs json found.")} 
     }
 
-   if (message.content.search(/^sv reacts/) != -1 && (isBigBoss == 1)) {
+   if (gotMsg.search(/^sv reacts/) != -1 && (isBigBoss == 1)) {
     try {
      fs.writeFileSync(dataFolder + disFile['server_id'] + "/introduced.json", JSON.stringify(disFile['introed'], null, ' '));
      console.log("Introduced users list saved.");
@@ -1128,10 +1159,10 @@ disClient.on('error', (errorEvent) => {
      } catch (e) {message.reply("Error: no reaccs json found.")} 
     }
 
-   if (message.content.search(/^rd /) != -1 && (isBigBoss == 1)) {
-    var mscguild = message.content.substring(3, 21);
-    var mscchannel = message.content.substring(22, 40);
-    var mscmessage = message.content.substring(41, 59);
+   if (gotMsg.search(/^rd /) != -1 && (isBigBoss == 1)) {
+    var mscguild = gotMsg.substring(3, 21);
+    var mscchannel = gotMsg.substring(22, 40);
+    var mscmessage = gotMsg.substring(41, 59);
     message.reply("[ " + disClient.guilds.get(mscguild).name + " / " + disClient.guilds.get(mscguild).channels.get(mscchannel).name + " ] " + mscmessage);
     disClient.guilds.get(mscguild).channels.get(mscchannel).fetchMessage(mscmessage)
      .then(msg => {
@@ -1147,7 +1178,7 @@ disClient.on('error', (errorEvent) => {
 
     } // if rd
 
-   if (message.content.search(/^help/) != -1) {
+   if (gotMsg.search(/^help/) != -1) {
     if (isBigBoss === 1) {
      message.reply("**ADMIN COMMANDS**\n```arm [ ++ | -- | 0 | x ]: increase arm count for dangerous commands\ndie: exit process (requires arm)\nbad[ + | - ] [user ID]: + adds/removes user to badlist (if flags set) and prints badlist.\nbrankav: loads b64.png and sets as avatar (broken)\nls guilds\nls roles [guild ID]\nscraperoles [guild ID]: scrapes all guild user roles to roles.json (must have rolecatcher flag enabled in config.json)\n[ ld | sv] reacts: loads/saves reaccs.json and introduced.json.```");
      }
@@ -1161,7 +1192,7 @@ disClient.on('error', (errorEvent) => {
 
    } // closes "if !server and not itself"
 
-  if (server == 0 && message.content.search(/^time/) != -1) {
+  if (server == 0 && gotMsg.search(/^time/) != -1) {
    if (filmOngoing == 0) {
     message.reply("Film club's not in session, bonehead!");
     return;
@@ -1188,21 +1219,21 @@ disClient.on('error', (errorEvent) => {
    if (message.mentions.users.get(disClient.user.id)) {
     setTimeout(function() {message.channel.send("No one cared who I was till I loaded node_modules.")}, 3000);
     }
-   if (message.content === "In fact, one of them is in this very room!") {
+   if (gotMsg === "In fact, one of them is in this very room!") {
     message.reply("You're god damn right I am, boss!")
     } // closes lol
-   if (message.content === "If I break that module, will you die?") {
+   if (gotMsg === "If I break that module, will you die?") {
     setTimeout(function() {message.reply("it would be extremely painful.")}, 3000);
     } // closes lol
-   if (message.content === "You're a big bot.") {
+   if (gotMsg === "You're a big bot.") {
     console.log(message.channel.permissionOverwrites);
     setTimeout(function() {message.channel.send("For you.")}, 3000);
     } // closes lol
-   if (message.content === "We're about to start having fun.") {
+   if (gotMsg === "We're about to start having fun.") {
     setTimeout(function() {message.channel.send("**This isn't even my final form!**")}, 3000);
     } // closes lol
 // && message.channel.id === "345047533099286550"
-   if (message.content === "!hottake" && hts === "on") {
+   if (gotMsg === "!hottake" && hts === "on") {
     var randint = Math.floor(Math.random() * 9);
     switch (randint) {
      case 1:
@@ -1235,7 +1266,7 @@ disClient.on('error', (errorEvent) => {
      }
     } // closes lol
 
-   if (message.content === "!boomertake" && hts === "on") {
+   if (gotMsg === "!boomertake" && hts === "on") {
     var randint = Math.floor(Math.random() * 6);
     switch (randint) {
      case 1:
@@ -1267,29 +1298,29 @@ disClient.on('error', (errorEvent) => {
       break;
      }
     } // closes lol
-   if (message.content.search(/meow/) != -1 && disFile['meow'] === "on") {
+   if (gotMsg.search(/meow/) != -1 && disFile['meow'] === "on") {
     message.react('🐈');
     // this is the unicode for a cat, it's not blank.
     // it's one character, despite taking up many spaces
     }
-   if (message.content.search(/freeze peach/) != -1 && disFile['meow'] === "on") {
+   if (gotMsg.search(/freeze peach/) != -1 && disFile['meow'] === "on") {
     message.react('❄');
     // this is the unicode for a snowflake, it's not blank.
     setTimeout(function() {message.react('🍑')}, 500);
     // unicode: peach. it's one character, despite taking up many spaces
     }
 
-   if (message.content.search(/disc horse/) != -1 && disFile['meow'] === "on") {
+   if (gotMsg.search(/disc horse/) != -1 && disFile['meow'] === "on") {
     message.react('📀');
     // this is the unicode for a snowflake, it's not blank.
     setTimeout(function() {message.react('🐎')}, 500);
     // unicode: dvd and horse
     }
 
-   if (message.content.search(/^!rot13/) != -1) {
+   if (gotMsg.search(/^!rot13/) != -1 && disFile['rot13'] === "on") {
     if (message.author.id === disClient.user.id) {return;}
-    if (message.content.length < 8) {return;}
-    pessage = message.content.substr(7, 2000);
+    if (gotMsg.length < 8) {return;}
+    pessage = gotMsg.substr(7, 2000);
     // if (pessage.length % 2 === 0) {return;}
     message.reply(rot13(pessage))
     .then(mussage => {
@@ -1299,7 +1330,7 @@ disClient.on('error', (errorEvent) => {
     message.delete();
     } // if it's rrrrr
 
-   if (message.content.search(/Debate me./) != -1 && configz['debate'] === "on") {
+   if (gotMsg.search(/Debate me./) != -1 && configz['debate'] === "on") {
     if (lastInter === message.author.id) {return;}
     interCount++;
     lastInter = message.author.id;
@@ -1409,16 +1440,16 @@ disClient.on('error', (errorEvent) => {
    if (mcn == backroom) {}
    if (mcn == darkroom) {}
    if (disFile['anon'] === 'on') {
-    if (message.content.search(/^recloak 0x/) != -1) {
+    if (gotMsg.search(/^recloak 0x/) != -1) {
      console.log("not implemented yet lol");
      } // if "recloak"
-    if (message.content.search(/^0x/) != -1) {
+    if (gotMsg.search(/^0x/) != -1) {
      console.log("Message author: " + message.author.id);
-     var sendto = message.content.substring(0,cloaklength);
+     var sendto = gotMsg.substring(0,cloaklength);
      var sender = message.author.username;
      console.log("Sendto: " + sendto);
      console.log("Sender: " + sender);
-     var sendage = message.content.substring(cloaklength + 1);
+     var sendage = gotMsg.substring(cloaklength + 1);
      console.log("Sending: " + sendage);
      darkroom.send('Sending to ' + sendto + ".");
      console.log(dataFolder + disFile['server_id'] + "/secrets.json");
@@ -1432,17 +1463,17 @@ disClient.on('error', (errorEvent) => {
      } // if the message starts with 0x
     } // if anon flag is set
    if (mcn == headroom) {
-    // if (message.content === 'pingas'){
+    // if (gotMsg === 'pingas'){
     doNothing(message, isBigBoss);
     // }
     }
    // this is the line that logs all messages
    console.log(date() + " " + message.channel.name + ": " + message);
-   if (message.content === "pingas") {
+   if (gotMsg === "pingas") {
     message.reply('usual, i see');
     v && isBigBoss && console.log('big boss in the house');
     } // if pingas
-   if (message.content === 'compingas' && isBigBoss) {
+   if (gotMsg === 'compingas' && isBigBoss) {
     backroom.send('hi');
     console.log(darkroom.name);
     // darkroom.send(darkroom);
@@ -1460,16 +1491,16 @@ disClient.on('error', (errorEvent) => {
 
 function dFuncs(message, isBigBoss) {
  if (isBigBoss > 0) {
-  if (message.content === 'writeout'){  
+  if (gotMsg === 'writeout'){  
    v && console.log("writing out");
    message.reply("writing out to " + logFolder);
    botlog("writing out params");
    } // writeout
-  if (message.content === 'dumpparams'){    
+  if (gotMsg === 'dumpparams'){    
    console.log("dumping params");
    message.reply(JSON.stringify(configz)); 
    } // dump params
-  if (message.content === 'rl configz'){
+  if (gotMsg === 'rl configz'){
    console.log("reloading configuration data");
    message.reply()
    } // reload configz

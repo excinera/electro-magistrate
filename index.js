@@ -1242,7 +1242,7 @@ disClient.on('error', (errorEvent) => {
     return;
     }
    for(var i = 0; i < 5; i++) {
-     message.reply(now.utc(intToStart).format("HH:mm:ss"));
+     // message.reply(now.utc(intToStart).format("HH:mm:ss"));
     setTimeout(function() {
      intToStart = now.utc().diff(flick);
      message.reply(now.utc(intToStart).format("HH:mm:ss"));

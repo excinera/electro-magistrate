@@ -48,16 +48,18 @@ const EventEmitter = require('events');
 
 var v = (process.argv.indexOf('v') + process.argv.indexOf('-v') + 2);
 var h = (process.argv.indexOf('h') + process.argv.indexOf('-h') + 2);
-var d = (process.argv.indexOf('d') + process.argv.indexOf('-d') + 2);
+var dbg = (process.argv.indexOf('d') + process.argv.indexOf('-d') + 2);
 var m = (process.argv.indexOf('m') + process.argv.indexOf('-m') + 2);
 var w = (process.argv.indexOf('w') + process.argv.indexOf('-w') + 2);
+var u = (process.argv.indexOf('u') + process.argv.indexOf('-u') + 2);
 // Process command-line arguments into variables.
 
 v = v ? 1 : 0;
-d = d ? 1 : 0;
+dbg = dbg ? 1 : 0;
 h = h ? 1 : 0;
 m = m ? 1 : 0;
 w = w ? 1 : 0;
+u = u ? 1 : 0;
 
 cbotlog(process.argv);
 
@@ -69,6 +71,7 @@ if (h) {
  console.log("  -m, multiple   Run without aborting existing")
  console.log("                 already-running process detected")
  console.log("  -v, verbose    Run with verbose logging enabled")
+ console.log("  -u, ultraverb  Log every single packet received")
  console.log("  -w, weak       Omit writing to lockfile so that")
  console.log("                 process will be killed by cronjob")
  process.exit(0);
@@ -188,7 +191,7 @@ try { badlist = JSON.parse(fs.readFileSync(badlistpath))} catch (e) {
 v && cbotlog("LOG DIR: /" + configz['logdir'] + "/ || CONF DIR: /" + configz['deetsdir'] + "/");
 var deezDeets = fs.readdirSync(deetsFolder);
 console.log('CONF FILES: ' + deezDeets);
-(d || v) && cbotlog("STARTING WITH " + (d ? "DEBUG " : "") + ((d * v) ? "AND " : "") + (v ? "VERBOSE " : "") + "MODE ENABLED");
+(dbg || v) && cbotlog("STARTING WITH " + (dbg ? "DEBUG " : "") + ((dbg * v) ? "AND " : "") + (v ? "VERBOSE " : "") + "MODE ENABLED");
 (w || m) && cbotlog("(" + (m ? "MULTI " : "") + ((m * w) ? "AND " : "") + (w ? "WEAK " : "") + "PROCESS CONTROLS)");
 
 var bridgefigz = 0;     
@@ -234,7 +237,7 @@ for (var i = 0; i < deezDeets.length; i++){
  // Connect to Discord API using credentials taken from the i-th file in the directory
  const disFile = JSON.parse(fs.readFileSync(deetsFolder + deezDeets[i]));   
  const authDeets  = disFile['token'];
- var disBridges = {"null":"null"};
+ var disBridges = {"nullenberg":"nullenborg"};
  try { disClient.login(authDeets)
   .catch(console.error);
   }
@@ -242,11 +245,10 @@ for (var i = 0; i < deezDeets.length; i++){
    cbotlog('Authentication failure on ' + disFile['appellation']);
    }
  // If the global and local bridge flags are set...
- if (configz['bridges'] === "on" && disFile['bridges'] === "on" && bridgefigz) {
-  const bridgefigz = JSON.parse(fs.readFileSync(bridgeconfig)); 
+ if (configz['bridges'] === "on") {
   if (bridgefigz[disFile['server_id']]) {
-   disBridges = bridgefigz[disFile['server_id']];
-   console.log('Attempting connection (B:' + Object.keys(disBridges).length + ') to "' + disFile['appellation'] + '" (' + deetsFolder + deezDeets[i] + ')');
+   disFile['bridges'] = bridgefigz[disFile['server_id']];
+   console.log('Attempting connection (B:' + Object.keys(bridgefigz[disFile['server_id']]).length + ') to "' + disFile['appellation'] + '" (' + deetsFolder + deezDeets[i] + ')');
    //console.log(disBridges);
    } // closes "if there's any bridges for this server"'
   else {
@@ -258,7 +260,6 @@ for (var i = 0; i < deezDeets.length; i++){
    console.log('Attempting connection (B:X) to "' + disFile['appellation'] + '" (' + deetsFolder + deezDeets[i] + ')');
    //console.log(disBridges);
    } // closes else for if they're disabled
-  disFile['bridges'] = disBridges;
   // Cram the client object into allDiscos so that it can exist outside of this scope
  allDiscos.push(disClient);
  allDeets.push(disFile);
@@ -293,7 +294,7 @@ disClient.on('error', (errorEvent) => {
   else {
    cbotlog("Error: Cannot fetch server for " + disFile['server_id'] + " (" + disFile['appellation'] + ")");
    }
-  cbotlog("Connected to \"" + disFile['appellation'] + "\": " + disFile['server_name'] + " (" + disFile['server_id'] + ") as " + disFile['username'] + " (" + disFile['client_id'] + ")");
+  cbotlog("Connected to \"" + disFile['appellation'] + "\": " + disFile['server_name'] + " (" + disFile['server_id'] + ") as " + disFile['client_name'] + " (" + disFile['client_id'] + ")");
   
   try { fs.mkdirSync(dataFolder + disFile['server_id']) } catch(e) {}
 
@@ -336,24 +337,28 @@ disClient.on('error', (errorEvent) => {
     fs.writeFileSync(dataFolder + disFile['server_id'] + "/roles.json", JSON.stringify(disFile['roles'], null, ' '));
     }
 
+
   setTimeout(function() {if (supMsg != "!" && disFile['anon'] === "on") supMsg.react('🕵');}, 5750);
   // SLEUTH OR SPY' (U+1F575)
   setTimeout(function() {if (supMsg != "!" && disFile['rot13'] === "on") supMsg.react('🕜');}, 6000);
   // UNICODE: 1F55C CLOCK FACE ONE-THIRTY 
   setTimeout(function() {if (supMsg != "!" && disFile['film'] === "on") supMsg.react('🎞');}, 6250);
   //🎞 U+1F39E FILM FRAMES, decimal: 127902, HTML: &#127902;
-  setTimeout(function() {if (supMsg != "!" && disFile['bridges'] === "on") supMsg.react('🌉');}, 6500);
+  setTimeout(function() {if (supMsg != "!" && disFile['bridges'] != "off") supMsg.react('🌉');}, 6500);
   // 	Bridge At Night U+1F309
 
   // 🌄 U+1F304 SUNRISE OVER MOUNTAINS, decimal: 127748, HTML: &#127748;
   setTimeout(function() {
+  //logUpAJson(disFile, ["token", "register_on_guild", "introed"]);
+  dbg && console.log(disFile['client_name']);
+  dbg && logInAJson(disFile, 'bridges');
    if (supMsg != "!") {
     fs.unlink(datFolder + "goodmorning.json", (err) => {
      if (err) cbotlog(err);
      else supMsg.react('🌄');
      });
     }
-   }, 8000);
+   }, 7000);
   
   for(var ds in Object.keys(disFile['reaccs'])) {
    re = disFile['reaccs'];
@@ -376,12 +381,12 @@ disClient.on('error', (errorEvent) => {
   // see: https://github.com/AnIdiotsGuide/discordjs-bot-guide/blob/master/coding-guides/raw-events.md
   // that's what this is adapted from
  disClient.on('raw', packet => {
-  d && console.log(date());
-  d && console.log(packet);
+  u && console.log(date());
+  u && console.log(packet);
   if(packet.t == 'PRESENCE_UPDATE') return;
   if(packet.t === 'GUILD_MEMBER_UPDATE') {
    // console.log(packet);
-   if (disFile['server_id'] === packet.d.guild_id && disFile['rolecatcher'] === "on") {
+   if (disFile['server_id'] === packet.d.guild_idbg && disFile['rolecatcher'] === "on") {
     // console.log(packet.d.user.id);
     disFile['roles'][packet.d.user.id] = packet.d.roles;
     try {
@@ -428,6 +433,9 @@ disClient.on('error', (errorEvent) => {
      }, 1500);
     }
    }
+  if(packet.t == 'MESSAGE_CREATE') {
+   // Bridge config still exists here.
+   }
   if (!['MESSAGE_REACTION_ADD', 'MESSAGE_REACTION_REMOVE', 'MESSAGE_DELETE', 'MESSAGE_UPDATE', 'TYPING_START'].includes(packet.t)) return;
   // if it's anything that we don't care about, gtfo this loop
   if(packet.t == 'TYPING_START') {
@@ -439,7 +447,7 @@ disClient.on('error', (errorEvent) => {
    if (!packet.d.guild_id) return; // if it was a DM!
    if (channel.lastMessageID != packet.d.id) return;
    // This will only process a message if it's the most recent one in the channel.
-   d && console.log("Last message edited!");
+   dbg && console.log("Last message edited!");
    examined.splice(examined.indexOf(packet.d.id), 1)
    disClient.emit('messageDelete', {
     'channel': disClient.channels.get(packet.d.channel_id),
@@ -467,7 +475,7 @@ disClient.on('error', (errorEvent) => {
     }
    return;
    }
-  // d && console.log(packet);
+  // dbg && console.log(packet);
   var channel = disClient.channels.get(packet.d.channel_id);
   if (['MESSAGE_REACTION_ADD', 'MESSAGE_REACTION_REMOVE'].includes(packet.t)) {
    // if (channel.messages.has(packet.d.message_id)) return;
@@ -483,11 +491,11 @@ disClient.on('error', (errorEvent) => {
      if (packet.d.user_id === disClient.user.id) return;
      // it shouldn't be processing stuff for its own reaccs
      if (packet.t === 'MESSAGE_REACTION_ADD') {
-      d && console.log(packet);
+      // dbg && console.log(packet);
       disClient.emit('bessageReactionAdd', reaction, disClient.users.get(packet.d.user_id));
       }
      if (packet.t === 'MESSAGE_REACTION_REMOVE') {
-      d && console.log(packet);
+      // dbg && console.log(packet);
       if (!reaction) return;
       disClient.emit('bessageReactionRemove', reaction, disClient.users.get(packet.d.user_id));
       } // if it's an emoji raw
@@ -496,16 +504,16 @@ disClient.on('error', (errorEvent) => {
    return;
    } // closes "if it's a react or a remove react"
   if (['MESSAGE_DELETE'].includes(packet.t)) {
-   d && console.log("'This message is cached' = " + channel.messages.has(packet.d.id));
+   dbg && console.log("'This message is cached' = " + channel.messages.has(packet.d.id));
    if (channel.messages.has(packet.d.id)) return;
    // don't emit an event if the message is already cached
    channel.fetchMessage(packet.d.id)
     .then(message => {
-    d && console.log('Message fetched.');
+    dbg && console.log('Message fetched.');
      disClient.emit('messageDelete', message);
      }) // if it does fetch a message
     .catch(function() {
-     d && console.log('Emitting messageDelete');
+     dbg && console.log('Emitting messageDelete');
      disClient.emit('messageDelete', {
       'channel': disClient.channels.get(packet.d.channel_id),
       'deleted': 'true',
@@ -566,7 +574,7 @@ disClient.on('error', (errorEvent) => {
    } // closes if mid
 
   if (disFile['bridges'][mcid] && disFile['bridges'][mcid]['active'] === "yes"){
-   d && cbotlog("Bridged from " + disFile['bridges'][mcid]['from_name'] + " / to: " + disFile['bridges'][mcid]['to_name']);
+   dbg && cbotlog("Bridged from " + disFile['bridges'][mcid]['from_name'] + " / to: " + disFile['bridges'][mcid]['to_name']);
    var bridgeBuffer = {
     'message' : messageReaction.message.id,
     'dest_ch' : disFile['bridges'][mcid]['to_id'],
@@ -577,7 +585,7 @@ disClient.on('error', (errorEvent) => {
     };
    for(var f = 0; f < Object.keys(allDiscos).length; f++){
     if ((allDiscos[f].guilds.find(x => x.id === disFile['bridges'][mcid]['to_svid'])) != null) {
-     d && console.log('Emitting bridgedMessage for copy of ' + disFile['bridges'][mcid]['to_svname']);
+     dbg && console.log('Emitting bridgedMessage for copy of ' + disFile['bridges'][mcid]['to_svname']);
      allDiscos[f].emit('bridgedMessage', bridgeBuffer)
       .catch( console.log("Error: could not emit bridged message"));
      } // closes event emitter for when it finds the right disco
@@ -599,7 +607,7 @@ disClient.on('error', (errorEvent) => {
     } // closes if kill=no
    } // closes if mid
   if (disFile['bridges'][mcid] && disFile['bridges'][mcid]['active'] === "yes"){
-   d && cbotlog("Bridged from " + disFile['bridges'][mcid]['from_name'] + " / to: " + disFile['bridges'][mcid]['to_name']);
+   dbg && cbotlog("Bridged from " + disFile['bridges'][mcid]['from_name'] + " / to: " + disFile['bridges'][mcid]['to_name']);
    var bridgeBuffer = {
     'message' : messageReaction.message.id,
     'dest_ch' : disFile['bridges'][mcid]['to_id'],
@@ -610,7 +618,7 @@ disClient.on('error', (errorEvent) => {
     };
    for(var f = 0; f < Object.keys(allDiscos).length; f++){
     if ((allDiscos[f].guilds.find(x => x.id === disFile['bridges'][mcid]['to_svid'])) != null) {
-     d && console.log('Emitting bridgedMessage for copy of ' + disFile['bridges'][mcid]['to_svname']);
+     dbg && console.log('Emitting bridgedMessage for copy of ' + disFile['bridges'][mcid]['to_svname']);
      allDiscos[f].emit('bridgedMessage', bridgeBuffer);
      } // closes event emitter for when it finds the right disco
     } // closes iterator for f
@@ -622,10 +630,10 @@ disClient.on('error', (errorEvent) => {
   if (examined.indexOf(message.id) != -1) return;
   examined.push(message.id);
   var mcid = message.channel.id;
-  d && console.log('messageDelete: ' + message.content);
-  d && console.log('Channel ID ' + message.channel.id + ' on guild ' + message.channel.guild.id);
+  dbg && console.log('messageDelete: ' + message.content);
+  dbg && console.log('Channel ID ' + message.channel.id + ' on guild ' + message.channel.guild.id);
   if (disFile['bridges'][mcid] && disFile['bridges'][mcid]['active'] === "yes"){
-   d && cbotlog("Bridged from " + disFile['bridges'][mcid]['from_name'] + " / to: " + disFile['bridges'][mcid]['to_name']);
+   dbg && cbotlog("Bridged from " + disFile['bridges'][mcid]['from_name'] + " / to: " + disFile['bridges'][mcid]['to_name']);
    var bridgeBuffer = {
     'message' : message.id,
     'dest_ch' : disFile['bridges'][mcid]['to_id'],
@@ -635,13 +643,13 @@ disClient.on('error', (errorEvent) => {
     };
    for(var f = 0; f < Object.keys(allDiscos).length; f++){
     if ((allDiscos[f].guilds.find(x => x.id === disFile['bridges'][mcid]['to_svid'])) != null) {
-     d && console.log('Emitting bridge-kill for copy of ' + disFile['bridges'][mcid]['to_svname']);
+     dbg && console.log('Emitting bridge-kill for copy of ' + disFile['bridges'][mcid]['to_svname']);
      allDiscos[f].emit('bridgedMessage', bridgeBuffer);
      } // closes event emitter for when it finds the right disco
     } // closes iterator for d
    } // close check for bridge existence, activation and non-webhook post
   else {
-   d && console.log("Bridge not found for deleted message. Doing nothing.");
+   dbg && console.log("Bridge not found for deleted message. Doing nothing.");
    }
   }) // end of handler for messageDelete ohh yeah
 
@@ -651,10 +659,10 @@ disClient.on('error', (errorEvent) => {
   dest = serv.channels.find(x => x.id === bridgeBuffer['dest_ch']);
   if (!dest) {cbotlog("ERROR: Bridge " + bridgeBuffer['dest_ch'] + " (on " + bridgeBuffer['dest_sv'] + ") is bad!");}
    else {
-    d && console.log('received bridge event for ' + bridged[bridgeBuffer['message']]);
-    // d && console.log(bridgeBuffer);
+    dbg && console.log('received bridge event for ' + bridged[bridgeBuffer['message']]);
+    // dbg && console.log(bridgeBuffer);
     if(bridgeBuffer['msgmode'] == 'k' && bridged[bridgeBuffer['message']]) {
-     d && console.log("Del'd id " + bridgeBuffer['message'] + " [killing " + bridged[bridgeBuffer['message']] + "]");
+     dbg && console.log("Del'd id " + bridgeBuffer['message'] + " [killing " + bridged[bridgeBuffer['message']] + "]");
      dest.fetchMessage(bridged[bridgeBuffer['message']])
       .then(message => {
        setTimeout(baleet, 100, message);
@@ -662,7 +670,7 @@ disClient.on('error', (errorEvent) => {
         // console.log(baleeted);
         dest.fetchMessage(bridged[bridgeBuffer['message']]);
         if (bridged[bridgeBuffer['message']] && baleeted.indexOf(message.id) == -1) {
-         d && console.log("baleeting " + message.content);
+         dbg && console.log("baleeting " + message.content);
          message.delete();
          } // if the message was bridged, go ahead and baleet it, and push its ID
         } // defines function for baleeting
@@ -671,7 +679,7 @@ disClient.on('error', (errorEvent) => {
      } // if msgmode = k
     if (badlist.indexOf(bridgeBuffer['user_id']) == -1) {
      if(bridgeBuffer['msgmode'] == 'r' && bridged[bridgeBuffer['message']]) {
-      d && console.log("reacc'd id " + bridgeBuffer['message'] + " [reaccing " + bridged[bridgeBuffer['message']] + "]");
+      dbg && console.log("reacc'd id " + bridgeBuffer['message'] + " [reaccing " + bridged[bridgeBuffer['message']] + "]");
       dest.fetchMessage(bridged[bridgeBuffer['message']])
        .then(message => {
         setTimeout(reacc, 100, message);
@@ -685,18 +693,18 @@ disClient.on('error', (errorEvent) => {
        .catch(console.error);
       } // if msgmode = r
      if(bridgeBuffer['msgmode'] == 'd' && bridged[bridgeBuffer['message']]) {
-      d && console.log("deacc'd id " + bridgeBuffer['message'] + " [deaccing " + bridged[bridgeBuffer['message']] + "]");
+      dbg && console.log("deacc'd id " + bridgeBuffer['message'] + " [deaccing " + bridged[bridgeBuffer['message']] + "]");
       dest.fetchMessage(bridged[bridgeBuffer['message']])
        .then(message => {
         setTimeout(deacc, 100, message);
         function deacc(message) {
          dest.fetchMessage(bridged[bridgeBuffer['message']]);
          if (bridged[bridgeBuffer['message']]) {
-          d && console.log("reaccing " + message.content);
+          dbg && console.log("reaccing " + message.content);
           // var meacts = message.reactions.get(bridgeBuffer['reacced']);
           // console.log(message.reactions);
           var meacts = message.reactions.get(bridgeBuffer['reacced']);
-          d && console.log(meacts);
+          dbg && console.log(meacts);
           // console.log(meacts);
           meacts.remove();
           } // if the message was bridged, go ahead and baleet it, and push its ID
@@ -705,7 +713,7 @@ disClient.on('error', (errorEvent) => {
        .catch(console.error);
       } // if msgmode = r
      // dest.send("<" + bridgeBuffer['usrname'] + "> " + bridgeBuffer['content']);
-     d && console.log('Sending bridged message with code ' + bridgeBuffer['msgmode'] + " / " + bridgeBuffer['methode']);
+     dbg && console.log('Sending bridged message with code ' + bridgeBuffer['msgmode'] + " / " + bridgeBuffer['methode']);
      if (bridgeBuffer['msgmode'] == "w" || bridgeBuffer['msgmode'] == "e") {
       // I expect to put some regex modification of the content string here.
       // Mentions have a couple dumb behaviors at the moment.
@@ -771,16 +779,18 @@ disClient.on('error', (errorEvent) => {
  // THE REAL MEAT AND POTATOES OF IT ALL: message handler
  disClient.on('message', message => {
   if (!message) return;
-  d && console.log("message");
+  dbg && console.log("message");
   var server = 0;
   if (message.guild) server = message.guild;    
   var isBigBoss = 0;
   var isFilmBoss = 0;
   if (message.author.id === configz['bigboss']['id']) isBigBoss = 1;   
   if (disFile['film']) {
-   if (!disFile['filmchannel']) return;
-   if (!disFile['filmchannel']['bosses']) return;
-   if (disFile['filmchannel']['bosses'].indexOf(message.author.id) != -1) isFilmBoss = 1;
+   if (!disFile['filmchannel']) {
+    if (disFile['filmchannel']['bosses']) {
+     if (disFile['filmchannel']['bosses'].indexOf(message.author.id) != -1) isFilmBoss = 1;
+     }
+    }
    }
   var gotMsg = message.content;
   if (message.content.search(/^<pid /) != -1 && isBigBoss === 1) {
@@ -804,7 +814,6 @@ disClient.on('error', (errorEvent) => {
   if ((gotMsg.search(/^pid$/) != -1) && (isBigBoss == 1)) {
    message.reply(process.pid);
    } // print pid
-
   if (server == 0 && message.author.id != disClient.user.id  && (isFilmBoss + isBigBoss) >= 1) {
    //console.log("test");   
 
@@ -896,8 +905,6 @@ disClient.on('error', (errorEvent) => {
      fs.writeFileSync(__dirname + '/data/badlist.json', JSON.stringify(badlist, null, ' '));
      } // Closes on if it's armed.
     } // Closes on if it detects a badlist command.
-
-
 
 
 
@@ -1011,6 +1018,8 @@ disClient.on('error', (errorEvent) => {
     message.reply("film set " + now.utc(flick).format());
     } // Closes on if it detects a fromnow command.
 
+
+
    if (gotMsg === 'ping') {
     message.reply('pong');
     }
@@ -1038,7 +1047,7 @@ disClient.on('error', (errorEvent) => {
      console.log(sterces);
      } // closes "if there's no secret with that id"
     antechamber.send(secrets[message.author.id] + ' : ' + gotMsg);
-    d && console.log(secrets);
+    dbg && console.log(secrets);
     } // closes "if the damn anonline is even turned on"
 
    if (gotMsg.search(/^ld$/) != -1 && (isBigBoss === 1)) {
@@ -1055,21 +1064,42 @@ disClient.on('error', (errorEvent) => {
      listTheGuilds = 1;
      }
     else {
+
      try {
       allDeets[serverid] = JSON.parse(fs.readFileSync(deetsFolder + deezDeets[serverid])); 
       cbotlog("Reloaded config for " + allDiscos[serverid].user.client_name + " (" + deezDeets[serverid] + " / " + allDeets[serverid]['appellation'] + ")");
       message.reply("Reloaded config for " + allDiscos[serverid].user.username + " (" + deezDeets[serverid] + " / " + allDeets[serverid]['appellation'] + ")");
       var listTheConfigs = 1;
+
       try {
        allDeets[serverid]['introed'] = JSON.parse(fs.readFileSync(dataFolder + allDeets[serverid]['server_id'] + "/introduced.json"));
        console.log("Introduced users list loaded.");
        message.reply("Introduced users list loaded.");
        } catch (e) {message.reply("Error: no intro'd json found.")} 
+
       try {
        allDeets[serverid]['reaccs'] = JSON.parse(fs.readFileSync(dataFolder + allDeets[serverid]['server_id'] + "/reaccs.json"));
        console.log("React config loaded.");
        message.reply("React config loaded.");
        } catch (e) {message.reply("Error: no reaccs json found.")} 
+
+      if (configz['bridges'] === "on") {
+       bridgefigz = JSON.parse(fs.readFileSync(bridgeconfig)); 
+       if (bridgefigz[allDeets[serverid]['server_id']]) {
+        allDeets[serverid]['bridges'] = bridgefigz[allDeets[serverid]['server_id']];
+        message.reply("Loaded in " + Object.keys(disBridges).length + " bridges");
+        //console.log(disBridges);
+        } // closes "if there's any bridges for this server"'
+       else {
+        message.reply("Bridges enabled (none found)");
+        //console.log(disBridges);
+        } // closes first else for if bridging is enabled but no bridges exist
+       } // closes "if bridges are enabled globally + per server"
+       else {
+        message.reply("Bridges disabled");
+        //console.log(disBridges);
+        } // closes else for if they're disabled
+
       } catch (e) {message.reply("[No valid disco] (" + allDeets[serverid] + " / " + allDeets[serverid]['appellation'] + ")")} 
      } // if valid server id
     } // if ld cfg
@@ -1236,7 +1266,7 @@ disClient.on('error', (errorEvent) => {
 
    } // closes "if !server and not itself"
 
-  if (server == 0 && gotMsg.search(/^time/) != -1) {
+  if (server == 0 && gotMsg.search(/^time$/) != -1) {
    if (filmOngoing == 0) {
     message.reply("Film club's not in session, bonehead!");
     return;
@@ -1252,12 +1282,13 @@ disClient.on('error', (errorEvent) => {
 
   // if it's a server message, i.e. in a channel somewhere
   if (server != 0 && message.author.id != disClient.user.id) {
-
+  // POLAR BLAST bug will get to here.
    if (disFile['intro']) {
-    if (disFile['intro'] != "on") return;
-    if (message.channel.id === disFile['intro-channel']) {
-     if(disFile['introed'].indexOf(message.author.id) === -1) disFile['introed'].push(message.author.id);
-     } // if it's in the intro channel, check to see if there's an entry for that userid int he file. if not, push it in!
+    if (disFile['intro'] === "on") {
+     if (message.channel.id === disFile['intro-channel']) {
+      if(disFile['introed'].indexOf(message.author.id) === -1) disFile['introed'].push(message.author.id);
+      } // if it's in the intro channel, check to see if there's an entry for that userid int he file. if not, push it in!
+     } // polar blasted
     } // if there's a disFile[intro],
    
    if (message.mentions.users.get(disClient.user.id)) {
@@ -1441,20 +1472,17 @@ disClient.on('error', (errorEvent) => {
    // and store the resutant ID as the variable
    // console.log(homeroom + " " + backroom + "  " + darkroom + " " + headroom)
    var mcid = message.channel.id;
-   var mcn = "<#" + mcid + ">";
-   var mcnb = "'" + mcid + "'";
-   //   console.log(mcid);
+   dbg && console.log("mcid: " + mcid);
    //   console.log(disFile['bridges'][mcid]);
-   //   console.log(mcnb);
    //   console.log(Object.keys(disFile['bridges']));
    //   console.log(disFile['bridges'][Object.keys(disFile['bridges'])]);
    //   console.log(disFile['bridges']);
-   //   console.log(disFile['bridges'][mcnb]);
    //   console.log(disFile['bridges'][1]);     
    // left here as a monument to human idiocy. all of these commands above won't work.
    // disFile['bridges'][mcid] is the right one. -x 2k18 09 18
+
    if (disFile['bridges'][mcid] && disFile['bridges'][mcid]['active'] === "yes" && message.webhookID == null) {
-    //console.log('detected!')
+    console.log('detected! bridge post')
     //console.log("to name: " + disFile['bridges'][mcid]['to_name']);
     //console.log("to id: " + disFile['bridges'][mcid]['to_id']);
     //console.log("to svid: " + disFile['bridges'][mcid]['to_svid']);
@@ -1492,17 +1520,19 @@ disClient.on('error', (errorEvent) => {
     bridging[message.content] = message.id;
     //console.log(bridging);
     } // closes "if it's in a bridged channel"
+
    if (disFile['bridges'][mcid] && disFile['bridges'][mcid]['active'] === "yes" && message.webhookID) {
     //console.log(bridging[message.content]);
     bridged[bridging[message.content]] = message.id;
     //console.log(bridged);
     fs.writeFileSync(logFolder + "bridged.log", JSON.stringify(bridged));
     } // if it's in a bridged channel but it has a webhook ID
+
    //   console.log(disFile['bridges'][mcnb]);
    //   console.log(disFile['bridges'][1]);     
-   if (mcn == homeroom) {}
-   if (mcn == backroom) {}
-   if (mcn == darkroom) {}
+   if (mcid == homeroom) {}
+   if (mcid == backroom) {}
+   if (mcid == darkroom) {}
    if (disFile['anon'] === 'on') {
     if (gotMsg.search(/^recloak 0x/) != -1) {
      console.log("not implemented yet lol");
@@ -1526,7 +1556,7 @@ disClient.on('error', (errorEvent) => {
      sendtouser.send("<" + sender + "> " + sendage);
      } // if the message starts with 0x
     } // if anon flag is set
-   if (mcn == headroom) {
+   if (mcid == headroom) {
     // if (gotMsg === 'pingas'){
     doNothing(message, isBigBoss);
     // }
@@ -1746,4 +1776,16 @@ function replyParceledJson (message, json, spicyEntries) {
   cfgoutput = parcelify(1994, cfgmidput, "\n");
  console.log(cfgoutput);
  for (k in cfgoutput) { message.reply("```" + cfgoutput[k] + "```"); }
+ }
+
+function logUpAJson (json, spicyEntries) {
+ for (j in json) {
+  if (!spicyEntries.includes(j)) console.log(j + json[j]);
+  } // iterate to find deets
+ }
+
+function logInAJson (json, object, spicyEntries) {
+ for (j in json) {
+  if (j === object) logUpAJson(json[j], []);
+  } // iterate to find deets
  }

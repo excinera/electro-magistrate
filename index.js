@@ -273,6 +273,18 @@ disClient.on('error', (errorEvent) => {
   // creates an object, local to this scope, of the single guild named in the specific config file
   // multiple config files can use the same authentication tokens.
   // config files may only contain deets for one server, so each disFile only uses one server
+  var supMsg = "!";
+  if (wakeup === "on") {
+   if (!disClient.channels.get(goodmorning[1])) return;
+   disClient.channels.get(goodmorning[1]).send(goodmorning[2])
+   .then(message => {
+   console.log("Wew lad");
+   supMsg = message;
+   console.log("Wew lad");
+   })
+   .catch(console.log("asdf"));
+   }
+
   disFile['client_id'] = disClient.user.id;
   disFile['client_name'] = disClient.user.username;
   if (disServer) {
@@ -291,6 +303,8 @@ disClient.on('error', (errorEvent) => {
   try {
    disFile['introed'] = JSON.parse(fs.readFileSync(dataFolder + disFile['server_id'] + "/introduced.json"));
    console.log("Introduced users list loaded.");
+   setTimeout(function() {if (supMsg != "!") supMsg.react('🤝');}, 5000);
+   // 🤝 U+1F91D HANDSHAKE, decimal: 129309, HTML: &#129309;
    }
    catch (e) {
     console.log("No introed configuration found. Creating empty file.");
@@ -300,6 +314,8 @@ disClient.on('error', (errorEvent) => {
   try {
    disFile['reaccs'] = JSON.parse(fs.readFileSync(dataFolder + disFile['server_id'] + "/reaccs.json"));
    console.log("React config loaded.");
+   setTimeout(function() {if (supMsg != "!") supMsg.react('👀');}, 5250);
+   //👀 U+1F440 EYES, decimal: 128064, HTML: &#128064;
    }
    catch (e) {
     console.log(e);
@@ -310,6 +326,8 @@ disClient.on('error', (errorEvent) => {
   try {
    disFile['roles'] = JSON.parse(fs.readFileSync(dataFolder + disFile['server_id'] + "/roles.json"));
    console.log("Role config loaded.");
+   setTimeout(function() {if (supMsg != "!") supMsg.react('👥');}, 5500);
+   //👥 U+1F465 BUSTS IN SILHOUETTE, decimal: 128101, HTML: &#128101;
    }
    catch (e) {
     console.log(e);
@@ -317,6 +335,26 @@ disClient.on('error', (errorEvent) => {
     disFile['roles'] = {"a":"a"};
     fs.writeFileSync(dataFolder + disFile['server_id'] + "/roles.json", JSON.stringify(disFile['roles'], null, ' '));
     }
+
+  setTimeout(function() {if (supMsg != "!" && disFile['anon'] === "on") supMsg.react('🕵');}, 5750);
+  // SLEUTH OR SPY' (U+1F575)
+  setTimeout(function() {if (supMsg != "!" && disFile['rot13'] === "on") supMsg.react('🕜');}, 6000);
+  // UNICODE: 1F55C CLOCK FACE ONE-THIRTY 
+  setTimeout(function() {if (supMsg != "!" && disFile['film'] === "on") supMsg.react('🎞');}, 6250);
+  //🎞 U+1F39E FILM FRAMES, decimal: 127902, HTML: &#127902;
+  setTimeout(function() {if (supMsg != "!" && disFile['bridges'] === "on") supMsg.react('🌉');}, 6500);
+  // 	Bridge At Night U+1F309
+
+  // 🌄 U+1F304 SUNRISE OVER MOUNTAINS, decimal: 127748, HTML: &#127748;
+  setTimeout(function() {
+   if (supMsg != "!") {
+    fs.unlink(datFolder + "goodmorning.json", (err) => {
+     if (err) cbotlog(err);
+     else supMsg.react('🌄');
+     });
+    }
+   }, 8000);
+  
   for(var ds in Object.keys(disFile['reaccs'])) {
    re = disFile['reaccs'];
    ki = Object.keys(re)[ds];
@@ -745,27 +783,30 @@ disClient.on('error', (errorEvent) => {
    if (disFile['filmchannel']['bosses'].indexOf(message.author.id) != -1) isFilmBoss = 1;
    }
   var gotMsg = message.content;
+  if (message.content.search(/^<pid /) != -1 && isBigBoss === 1) {
+   if (message.content.substring(5, message.content.indexOf(">")) != process.pid) {
+    gotMsg = "";
+    return;
+    } else {
+     message.reply("Executing on PID " + process.pid);
+     gotMsg = message.content.slice(message.content.indexOf(">") + 2);
+     }
+   }   
+  if (message.content.search(/^<!pid /) != -1 && isBigBoss === 1) {
+   if (message.content.substring(6, message.content.indexOf(">")) === process.pid) {
+    gotMsg = "";
+    return;
+    } else {
+     message.reply("Executing on PID " + process.pid);
+     gotMsg = message.content.slice(message.content.indexOf(">") + 2);
+     }
+   }   
+  if ((gotMsg.search(/^pid$/) != -1) && (isBigBoss == 1)) {
+   message.reply(process.pid);
+   } // print pid
+
   if (server == 0 && message.author.id != disClient.user.id  && (isFilmBoss + isBigBoss) >= 1) {
-   //console.log("test");
-   if (message.content.search(/^<pid /) != -1) {
-    if (message.content.substring(5, message.content.indexOf(">")) != process.pid) {
-     gotMsg = "";
-     return;
-     } else {
-      message.reply("Executing on PID " + process.pid);
-      gotMsg = message.content.slice(message.content.indexOf(">") + 2);
-      }
-    }   
-   if (message.content.search(/^<!pid /) != -1) {
-    if (message.content.substring(6, message.content.indexOf(">")) === process.pid) {
-     gotMsg = "";
-     return;
-     } else {
-      message.reply("Executing on PID " + process.pid);
-      gotMsg = message.content.slice(message.content.indexOf(">") + 2);
-      }
-    }   
-   
+   //console.log("test");   
 
    if (disFile['arm'] && (isBigBoss == 1)) {}
     else {disFile['arm'] = 1;}
@@ -780,10 +821,6 @@ disClient.on('error', (errorEvent) => {
      disFile['arm'] = 99999999; } // Mass arm.
     message.reply("Arm count: " + disFile['arm']);
     } // if it's modifying arm...
-
-   if ((gotMsg.search(/^pid/) != -1) && (isBigBoss == 1)) {
-    message.reply(process.pid);
-    } // print pid
 
    if ((gotMsg.search(/^die/) != -1) && (isBigBoss == 1)) {
     if (disFile['arm'] < 1){
@@ -1306,7 +1343,7 @@ disClient.on('error', (errorEvent) => {
      }
     } // closes lol
 
-   if (gotMsg.search(/Computer, reload thyself./) != -1 && isBigBoss === 1) {
+   if (gotMsg.search(/^Computer, reload thyself./) != -1 && isBigBoss === 1) {
     try {
      var goodmorning = [
      message.guild.id,

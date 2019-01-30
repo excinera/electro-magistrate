@@ -112,7 +112,6 @@ const lockfiletimeout = configz.lockfiletimeout; // Number of seconds the progra
   console.log("       Killing currently-running processes won't work.");
   }
  try {
-  fs.readFileSync(lockfilepath);
   seconds = ((new Date().getTime() - fs.statSync(lockfilepath).mtime) / 1000);
   lock = JSON.parse(fs.readFileSync(lockfilepath));
   } catch(e) {
@@ -220,6 +219,12 @@ if (configz['hottakes'] === 'on') {
  try { oppressed = JSON.parse(fs.readFileSync(datFolder + "goofy/oppressed.json"))} catch (e) {hts = "off";};
  try { oppression = JSON.parse(fs.readFileSync(datFolder + "goofy/oppression.json"))} catch (e) {hts = "off";};
  }
+
+try {
+ goodmorning = JSON.parse(fs.readFileSync(datFolder + "goodmorning.json"));
+ var wakeup = "on";
+ } catch (e) {
+  var wakeup = "off";}
 
 
 // this is where the magic happens. outer control loop iterated over all configs
@@ -735,6 +740,8 @@ disClient.on('error', (errorEvent) => {
   var isFilmBoss = 0;
   if (message.author.id === configz['bigboss']['id']) isBigBoss = 1;   
   if (disFile['film']) {
+   if (!disFile['filmchannel']) return;
+   if (!disFile['filmchannel']['bosses']) return;
    if (disFile['filmchannel']['bosses'].indexOf(message.author.id) != -1) isFilmBoss = 1;
    }
   var gotMsg = message.content;
@@ -1298,6 +1305,26 @@ disClient.on('error', (errorEvent) => {
       break;
      }
     } // closes lol
+
+   if (gotMsg.search(/Computer, reload thyself./) != -1 && isBigBoss === 1) {
+    try {
+     var goodmorning = [
+     message.guild.id,
+     message.channel.id,
+     "I have returned." ];
+     fs.writeFileSync(datFolder + "goodmorning.json", JSON.stringify(goodmorning, null, ' '));
+     message.reply("*Autumn ends: bots settle down into the earth.*");
+     cbotlog("Aborting process due to user command.");
+     setTimeout(function() {process.abort();}, 2000);
+     } catch (e) {
+      message.reply("*Then as it was, so again it shall be.")
+      cbotlog("Aborting process due to user command!");
+      setTimeout(function() {process.abort();}, 2000);
+      } 
+    } // Reload thyself! 
+
+
+
    if (gotMsg.search(/meow/) != -1 && disFile['meow'] === "on") {
     message.react('🐈');
     // this is the unicode for a cat, it's not blank.

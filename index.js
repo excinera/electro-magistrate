@@ -717,6 +717,7 @@ disClient.on('error', (errorEvent) => {
      if (bridgeBuffer['msgmode'] == "w" || bridgeBuffer['msgmode'] == "e") {
       // I expect to put some regex modification of the content string here.
       // Mentions have a couple dumb behaviors at the moment.
+      bridgeBuffer['content'] = bridgeBuffer['content'].replaceAll("@everyone", "@\u200beveryone").replaceAll("@here", "@\u200bhere");
       } // if msgmode is "w" or "e"
      if(bridgeBuffer['msgmode'] == "w") {
       //console.log(bridgeBuffer['message']);

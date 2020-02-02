@@ -20,11 +20,10 @@ Anyway, whatever I write here is going to be printed out and stored in a vault f
 
 Hi! If you are reading this in the future, I will have been dead for a long time. Over the course of my life, as of writing this, I've spent my entire life watching the world change in ways that rendered it almost unrecognizable to me. I expect it to continue changing after I write this, until I die, and past then as well. I have spent a lot of time reading about the past, and am glad that so many people tried their best to make the world a good place for me to live in today. It has changed in ways that made me feel good, and ways that made me feel bad. I am apprehensive about the future, but I hope it brings you happiness and wisdom, and that you live in a world where you are free to exercise control over your own life (whatever that might mean).
 
-The code in this repository, and this file I am writing now, is a record of something I did in the 21st centure -- and like many things in the world  in the 21st century, it was flawed and imperfect.
-
 I have no way of knowing what world the person reading this will live in. Perhaps you will feel the same way as me about the future. Perhaps you will feel the same way about me as I did reading about the ancient history of my time. Perhaps you are reading this to write an essay for school -- my condolences if you have not figured out a better way to do this yet.
 
-I hoped that I'd be able to spend more time on writing this, but I procrastinated and now I only have a couple of minutes left.
+I hoped that I'd be able to spend more time on this, but I procrastinated, and now only have a couple of minutes left. 
+The code in this repository, and indeed, what I am writing now, is a record of something I did in the 21st century, precisely the way I did it -- and like many things in the world in the 21st century, it was flawed and imperfect. Apologies, and I hope you will understand.
 
 Please take care of yourselves.
 

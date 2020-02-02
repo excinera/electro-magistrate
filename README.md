@@ -8,4 +8,6 @@ Anyway, I did get a job in California in 2019, but it was not writing web applic
 
 The thing that this software did (and still does) is help a lot of my friends talk to each other online. This makes me feel good.
 
+I'm not maintaining it right now, mostly because I am busy with my work (which doesn't involve Node, or any kind of other web application development). There is still stuff I have to fix...
+
 - x.

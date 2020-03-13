@@ -205,7 +205,11 @@ console.log('CONF FILES: ' + deezDeets);
 (dbg || v) && cbotlog("STARTING WITH " + (dbg ? "DEBUG " : "") + ((dbg * v) ? "AND " : "") + (v ? "VERBOSE " : "") + "MODE ENABLED");
 (w || m) && cbotlog("(" + (m ? "MULTI " : "") + ((m * w) ? "AND " : "") + (w ? "WEAK " : "") + "PROCESS CONTROLS)");
 
-var bridgefigz = 0;     
+var bridgefigz = 0;
+
+
+
+
 try { bridgefigz = JSON.parse(fs.readFileSync(bridgeconfig))} catch (e) {}
 if ((configz['bridges'] === "on") && bridgefigz) {
  cbotlog("BRIDGING ENABLED (" + Object.keys(bridgefigz).length + ")");

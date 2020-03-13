@@ -83,6 +83,8 @@ try { fs.mkdirSync(datFolder) } catch(e) {}
 try { configz = JSON.parse(fs.readFileSync(globalconfig))} catch (e) {
  baseconfig = {
   "bridges":"off",
+  "debate":"off",
+  "hottakes":"off",
   "bigboss":{
    "id":"x",
    "username":"x",
@@ -100,6 +102,12 @@ try { configz = JSON.parse(fs.readFileSync(globalconfig))} catch (e) {
    "id":"x",
    "dispname":"x",
    "note":"x"},
+  "filmchannel":{
+    "bosses":[],
+    "id":"000000000000000000",
+    "dispname":"x",
+    "note":"x"},
+  "lazylog":"off",
   "lockfiletimeout":"60",
   "lockfilewrite":"45"
   };

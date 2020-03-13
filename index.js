@@ -83,6 +83,8 @@ try { fs.mkdirSync(datFolder) } catch(e) {}
 try { configz = JSON.parse(fs.readFileSync(globalconfig))} catch (e) {
  baseconfig = {
   "bridges":"off",
+  "debate":"off",
+  "hottakes":"off",
   "bigboss":{
    "id":"x",
    "username":"x",
@@ -100,6 +102,12 @@ try { configz = JSON.parse(fs.readFileSync(globalconfig))} catch (e) {
    "id":"x",
    "dispname":"x",
    "note":"x"},
+  "filmchannel":{
+    "bosses":[],
+    "id":"000000000000000000",
+    "dispname":"x",
+    "note":"x"},
+  "lazylog":"off",
   "lockfiletimeout":"60",
   "lockfilewrite":"45"
   };
@@ -107,6 +115,9 @@ try { configz = JSON.parse(fs.readFileSync(globalconfig))} catch (e) {
  cbotlog("ERROR: No configuration file detected. Creating one now.");
  configz = baseconfig;
  } // Try to read file, create if absent.
+
+var lazeLog = 0;
+if (configz['lazylog'] === "on") {lazeLog = 1}
 
 if (!m) {
 const lockfiletimeout = configz.lockfiletimeout; // Number of seconds the program should wait after the last heartbeat to declare old instance dead
@@ -194,7 +205,11 @@ console.log('CONF FILES: ' + deezDeets);
 (dbg || v) && cbotlog("STARTING WITH " + (dbg ? "DEBUG " : "") + ((dbg * v) ? "AND " : "") + (v ? "VERBOSE " : "") + "MODE ENABLED");
 (w || m) && cbotlog("(" + (m ? "MULTI " : "") + ((m * w) ? "AND " : "") + (w ? "WEAK " : "") + "PROCESS CONTROLS)");
 
-var bridgefigz = 0;     
+var bridgefigz = 0;
+
+
+
+
 try { bridgefigz = JSON.parse(fs.readFileSync(bridgeconfig))} catch (e) {}
 if ((configz['bridges'] === "on") && bridgefigz) {
  cbotlog("BRIDGING ENABLED (" + Object.keys(bridgefigz).length + ")");
@@ -1281,6 +1296,10 @@ disClient.on('error', (errorEvent) => {
    } // Closes reply to timechecks. Woo!
 
   // if it's a server message, i.e. in a channel somewhere
+  if (server != 0 && lazeLog == 1) {
+   lazyLog(message);
+   }
+
   if (server != 0 && message.author.id != disClient.user.id) {
   // POLAR BLAST bug will get to here.
    if (disFile['intro']) {
@@ -1789,3 +1808,91 @@ function logInAJson (json, object, spicyEntries) {
   if (j === object) logUpAJson(json[j], []);
   } // iterate to find deets
  }
+
+
+
+
+
+
+
+
+function convertToText (message) {
+  var text = message.content;
+  // text = sanitize(text);
+  // text = censor(text)
+  // formatting as auxr.epic according to pisg.sourceforge.net/formats
+  // should look like '[MM/DD/YYYY @ HH:MM:SS] <5318008101> X XXXX XXX XX XXXXXX'
+  return `[${date()}] <${message.author.username.replace(/ /,'_')}> ${text}\n`
+}
+
+function date() {
+  // [MM/DD/YYYY @ HH:MM:SS]
+  return now().format('MM/DD/YYYY @ HH:mm:ss')
+}
+
+function lazyLog (message) {
+  const servers = {"345045447745732608":"acn",
+   "417426624779124747":"dub"};
+  const text = convertToText(message)
+  const logFold = `${logFolder}chat/${now().format('YYYY-MM')}`
+  const logFoldCurrent = `${logFolder}chat/current`
+  try { fs.mkdirSync(logFolder + "chat/")} catch(e) {}
+  try { fs.mkdirSync(logFold) } catch(e) {}
+  try { fs.mkdirSync(logFoldCurrent) } catch(e) {}
+  if (message.channel.type == 'text') {
+    var channel = message.channel.name
+    var guild = message.guild.id;
+    if (servers[message.guild.id]) {guild = servers[message.guild.id]}
+
+    try { fs.mkdirSync(logFoldCurrent + "/" + guild) } catch(e) {}
+    try { fs.mkdirSync(logFoldCurrent + "/" + guild + "-d") } catch(e) {}
+    try { fs.mkdirSync(logFold + "/" + guild) } catch(e) {}
+    try { fs.mkdirSync(logFold + "/" + guild + "-d") } catch(e) {}
+
+    try {fs.appendFileSync(`${logFold}/${guild}.txt`, text)}
+    catch(e) {
+     fs.writeFileSync(`${logFold}/${guild}.txt`, text)}
+
+    try {fs.appendFileSync(`${logFold}/${guild}-d.txt`, "X")}
+    catch(e) {
+     fs.writeFileSync(`${logFold}/${guild}-d.txt`, "X")}
+
+    try {fs.appendFileSync(`${logFold}/${guild}/${channel}.txt`, text)}
+    catch(e) {
+     fs.writeFileSync(`${logFold}/${guild}/${channel}.txt`, text)}
+
+    try {fs.appendFileSync(`${logFold}/${guild}-d/${channel}.txt`, "X")}
+    catch(e) {
+     fs.writeFileSync(`${logFold}/${guild}-d/${channel}.txt`, "X")}
+
+    try {fs.appendFileSync(`${logFold}/${guild}/${channel}.txt`, text)}
+    catch(e) {
+     fs.writeFileSync(`${logFold}/${guild}/${channel}.txt`, text)}
+
+    try {fs.appendFileSync(`${logFold}/${guild}-d/${channel}.txt`, "X")}
+    catch(e) {
+     fs.writeFileSync(`${logFold}/${guild}-d/${channel}.txt`, "X")}
+
+    try {fs.appendFileSync(`${logFoldCurrent}/${guild}.txt`, text)}
+    catch(e) {
+     fs.writeFileSync(`${logFoldCurrent}/${guild}.txt`, text)}
+
+    try {fs.appendFileSync(`${logFoldCurrent}/${guild}-d.txt`, "X")}
+    catch(e) {
+     fs.writeFileSync(`${logFoldCurrent}/${guild}-d.txt`, "X")}
+
+    try {fs.appendFileSync(`${logFoldCurrent}/${guild}/${channel}.txt`, text)}
+    catch(e) {
+     fs.writeFileSync(`${logFoldCurrent}/${guild}/${channel}.txt`, text)}
+
+    try {fs.appendFileSync(`${logFoldCurrent}/${guild}-d/${channel}.txt`, "X")}
+    catch(e) {
+     fs.writeFileSync(`${logFoldCurrent}/${guild}-d/${channel}.txt`, "X")}
+  }
+  try {fs.appendFileSync(`${logFold}.txt`, text)}
+  catch(e) {
+   fs.writeFileSync(`${logFold}.txt`, text)}
+  try {fs.appendFileSync(`${logFoldCurrent}.txt`, text)}
+  catch(e) {
+   fs.writeFileSync(`${logFoldCurrent}.txt`, text)}
+}
